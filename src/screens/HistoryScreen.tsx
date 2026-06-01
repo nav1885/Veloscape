@@ -2,12 +2,12 @@ import React, { useCallback, useState } from 'react';
 import {
   FlatList,
   RefreshControl,
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { colors } from '../constants/colors';
@@ -20,12 +20,24 @@ import {
   type RideHistoryRow,
 } from '../services/rideHistoryService';
 import { RootStackParamList } from '../navigation/types';
+import { SyncStateBadge, type SyncState } from '../components/SyncStateBadge';
+import CoachedPill from '../components/CoachedPill';
+import RouteThumbnail from '../components/RouteThumbnail';
+import { reconcileOnLaunch } from '../services/stravaReconciler';
+import { ingestRecentActivities } from '../services/homeIngestor';
 
 type Nav = StackNavigationProp<RootStackParamList>;
+
+function rideToSyncState(r: RideHistoryRow): SyncState {
+  if (r.importedFromStrava) return 'imported';
+  if (r.dataSource === 'strava') return 'synced';
+  return 'phone-recorded';
+}
 
 export default function HistoryScreen() {
   const navigation = useNavigation<Nav>();
   const riderId = useAuthStore((s) => s.rider?.id);
+  const stravaAccessToken = useAuthStore((s) => s.stravaAccessToken);
   const [rides, setRides] = useState<RideHistoryRow[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -40,11 +52,28 @@ export default function HistoryScreen() {
     }, [reload])
   );
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
     reload();
+    if (stravaAccessToken && riderId) {
+      try {
+        await Promise.all([
+          reconcileOnLaunch(stravaAccessToken),
+          ingestRecentActivities(stravaAccessToken, riderId),
+        ]);
+        reload();
+      } catch (err) {
+        console.warn('[History] reconcile failed:', err);
+      }
+    }
     setRefreshing(false);
   };
+
+  const provisionalCount = rides.filter((r) => r.dataSource === 'provisional').length;
+  const subtitleText =
+    provisionalCount > 0 && stravaAccessToken
+      ? `${rides.length} rides · ${provisionalCount} awaiting Strava`
+      : `${rides.length} ${rides.length === 1 ? 'ride' : 'rides'}`;
 
   const renderItem = ({ item }: { item: RideHistoryRow }) => (
     <TouchableOpacity
@@ -54,36 +83,36 @@ export default function HistoryScreen() {
       }
       activeOpacity={0.7}
     >
-      <View style={styles.rowHeader}>
-        <Text style={styles.rideName}>{item.name}</Text>
-        <Text style={styles.dateText}>{formatRelativeDate(item.startedAt)}</Text>
-      </View>
-      <View style={styles.statsRow}>
-        <Stat label="Distance" value={formatDistanceKm(item.distanceM)} />
-        <Stat label="Duration" value={formatDuration(item.endedAt - item.startedAt)} />
-        <Stat label="Segments" value={`${item.segmentCount}`} />
-        <Stat label="PRs" value={`${item.prCount}`} accent={item.prCount > 0} />
-      </View>
-      <View style={styles.tagRow}>
-        <View style={[styles.tag, goalTagStyle(item.goalMode)]}>
-          <Text style={styles.tagText}>{goalModeLabel(item.goalMode)}</Text>
-        </View>
-        {!item.stravaSynced && (
-          <View style={styles.tagMuted}>
-            <Text style={styles.tagMutedText}>Not synced</Text>
+      <View style={styles.rowWrap}>
+        <RouteThumbnail coords={item.routeCoords} width={64} height={64} style={styles.thumb} />
+        <View style={styles.content}>
+          <View style={styles.rowHeader}>
+            <Text style={styles.rideName} numberOfLines={1}>{item.name}</Text>
+            <Text style={styles.dateText}>{formatRelativeDate(item.startedAt)}</Text>
           </View>
-        )}
+          <View style={styles.statsRow}>
+            <Stat label="Distance" value={formatDistanceKm(item.distanceM)} />
+            <Stat label="Duration" value={formatDuration(item.endedAt - item.startedAt)} />
+            <Stat label="Segments" value={`${item.segmentCount}`} />
+            <Stat label="PRs" value={`${item.prCount}`} accent={item.prCount > 0} />
+          </View>
+          <View style={styles.tagRow}>
+            <View style={[styles.tag, goalTagStyle(item.goalMode)]}>
+              <Text style={styles.tagText}>{goalModeLabel(item.goalMode)}</Text>
+            </View>
+            <SyncStateBadge state={rideToSyncState(item)} size="sm" />
+            {item.coachedBySherpaa && <CoachedPill size="sm" />}
+          </View>
+        </View>
       </View>
     </TouchableOpacity>
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Ride History</Text>
-        <Text style={styles.subtitle}>
-          {rides.length} {rides.length === 1 ? 'ride' : 'rides'}
-        </Text>
+        <Text style={styles.subtitle}>{subtitleText}</Text>
       </View>
 
       <FlatList
@@ -144,8 +173,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  rowWrap: { flexDirection: 'row', alignItems: 'center' },
+  thumb: { marginRight: 12 },
+  content: { flex: 1 },
   rowHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
-  rideName: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
+  rideName: { flex: 1, fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginRight: 8 },
   dateText: { fontSize: 12, color: colors.textSecondary },
   statsRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   stat: { flex: 1 },

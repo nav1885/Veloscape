@@ -7,6 +7,8 @@
 import { desc, eq } from 'drizzle-orm';
 import { db } from '../db/client';
 import { rides, segmentEfforts, segments, type Ride, type SegmentEffort } from '../db/schema';
+import { resolveRideRouteCoords } from './routeResolver';
+import type { LatLng } from '../utils/polyline';
 
 export interface RideHistoryRow {
   id: string;
@@ -19,6 +21,10 @@ export interface RideHistoryRow {
   segmentCount: number;
   prCount: number;
   stravaSynced: boolean;
+  dataSource: 'provisional' | 'strava';
+  importedFromStrava: boolean;
+  coachedBySherpaa: boolean;
+  routeCoords?: LatLng[];
 }
 
 export interface RideEffortRow {
@@ -33,6 +39,12 @@ export interface RideEffortRow {
   cueTextPlayed: string | null;
   avgHrBpm: number | null;
   avgWatts: number | null;
+  // Segment start/end geometry — used to locate this segment's slice on the
+  // ride's GPS track for map highlighting.
+  startLat: number | null;
+  startLng: number | null;
+  endLat: number | null;
+  endLng: number | null;
 }
 
 export interface RideDetail {
@@ -65,6 +77,10 @@ export function loadRideHistory(riderId: string): RideHistoryRow[] {
       segmentCount: efforts.length,
       prCount: efforts.filter((e) => e.isNewPR).length,
       stravaSynced: r.stravaSynced,
+      dataSource: r.dataSource,
+      importedFromStrava: r.importedFromStrava,
+      coachedBySherpaa: r.coachedBySherpaa,
+      routeCoords: resolveRideRouteCoords(r),
     };
   });
 }
@@ -93,6 +109,10 @@ export function loadRideDetail(rideId: string): RideDetail | null {
       cueTextPlayed: e.cueTextPlayed,
       avgHrBpm: e.avgHrBpm,
       avgWatts: e.avgWatts,
+      startLat: seg?.startLat ?? null,
+      startLng: seg?.startLng ?? null,
+      endLat: seg?.endLat ?? null,
+      endLng: seg?.endLng ?? null,
     };
   });
 
@@ -100,7 +120,11 @@ export function loadRideDetail(rideId: string): RideDetail | null {
 }
 
 export function formatDistanceKm(meters: number): string {
-  return `${(meters / 1000).toFixed(1)} km`;
+  // Re-export through units helper so settings drive unit display
+  // (named legacy for source-compat; returns mi when imperial)
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { formatDistanceMeters } = require('../utils/units');
+  return formatDistanceMeters(meters);
 }
 
 export function formatDuration(seconds: number): string {
