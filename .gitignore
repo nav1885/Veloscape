@@ -10,7 +10,9 @@ expo-env.d.ts
 
 # Native builds (generated — do not commit build artifacts)
 ios/build/
+ios/build-device/
 ios/Pods/
+ios/*.xcworkspace/
 android/build/
 android/app/build/
 android/.gradle/

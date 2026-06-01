@@ -89,7 +89,7 @@ android {
 
     namespace "com.sherpaainit"
     defaultConfig {
-        applicationId "com.sherpaainit"
+        applicationId "com.sherpaa.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
