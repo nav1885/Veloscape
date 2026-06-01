@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   Alert,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Switch,
@@ -9,14 +8,20 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../constants/colors';
 import { useAuthStore } from '../store/authStore';
 import { useSettingsStore, type Units } from '../store/settingsStore';
 import { speak, stop as stopSpeech } from '../services/ttsService';
+import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import { db } from '../db/client';
 import { cues, cachedActivities } from '../db/schema';
+import DisclosureRow from '../components/DisclosureRow';
+import type { RootStackParamList } from '../navigation/types';
 
 export default function SettingsScreen() {
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const rider = useAuthStore((s) => s.rider);
   const subscriptionTier = useAuthStore((s) => s.subscriptionTier);
   const clearAuth = useAuthStore((s) => s.clearAuth);
@@ -29,10 +34,10 @@ export default function SettingsScreen() {
   const setTtsRate = useSettingsStore((s) => s.setTtsRate);
   const ttsEnabled = useSettingsStore((s) => s.ttsEnabled);
   const setTtsEnabled = useSettingsStore((s) => s.setTtsEnabled);
-  const stravaAutoUpload = useSettingsStore((s) => s.stravaAutoUpload);
-  const setStravaAutoUpload = useSettingsStore((s) => s.setStravaAutoUpload);
   const hrCheckinEnabled = useSettingsStore((s) => s.hrCheckinEnabled);
   const setHrCheckinEnabled = useSettingsStore((s) => s.setHrCheckinEnabled);
+  const summariesEnabled = useSettingsStore((s) => s.summariesEnabled);
+  const setSummariesEnabled = useSettingsStore((s) => s.setSummariesEnabled);
 
   const [busy, setBusy] = useState(false);
 
@@ -68,7 +73,7 @@ export default function SettingsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.title}>Settings</Text>
 
@@ -109,6 +114,12 @@ export default function SettingsScreen() {
             </View>
           </View>
           <Pressable label="Test voice" onPress={handleTestVoice} />
+          <ToggleRow
+            label="Generate text summaries for non-coached rides"
+            sublabel="Off saves LLM cost. Default is on."
+            value={summariesEnabled}
+            onChange={setSummariesEnabled}
+          />
         </Section>
 
         <Section title="Coaching">
@@ -120,15 +131,20 @@ export default function SettingsScreen() {
           />
         </Section>
 
-        <Section title="Strava">
-          <ToggleRow
-            label="Auto-upload completed rides"
-            sublabel="Sync to Strava when you end a ride"
-            value={stravaAutoUpload}
-            onChange={setStravaAutoUpload}
-          />
+        <Section title="Strava" subtitle="Sherpaa coaches. Your watch records.">
           <Row label="Last segment sync" value={formatRelative(lastSegmentSyncAt)} />
           <Row label="Last activity fetch" value={formatRelative(lastActivityFetchAt)} />
+          <DisclosureRow label="What gets synced">
+            When your watch uploads to Strava, Sherpaa pulls the authoritative
+            distance, elevation, heart rate, and segment effort times. Phone
+            GPS is only used for live cue timing during the ride.{'\n\n'}
+            If you ride without a head unit, your rides will stay phone-recorded.
+            Sherpaa still coaches and debriefs you the same way.
+          </DisclosureRow>
+          <Pressable
+            label="Reconnect Strava"
+            onPress={() => navigation.navigate('Auth', { screen: 'StravaConnect' })}
+          />
         </Section>
 
         <Section title="Storage">
@@ -145,10 +161,19 @@ export default function SettingsScreen() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  subtitle,
+  children,
+}: {
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+}) {
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title.toUpperCase()}</Text>
+      {subtitle && <Text style={styles.sectionSubtitle}>{subtitle}</Text>}
       <View style={styles.sectionBody}>{children}</View>
     </View>
   );
@@ -279,6 +304,14 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     color: colors.textSecondary,
     paddingHorizontal: 4,
+    marginBottom: 8,
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    fontWeight: '400',
+    color: colors.textSecondary,
+    paddingHorizontal: 4,
+    marginTop: -4,
     marginBottom: 8,
   },
   sectionBody: {

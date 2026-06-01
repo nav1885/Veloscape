@@ -147,3 +147,70 @@ export async function getRecentActivities(
     .filter(a => a.map?.summary_polyline)
     .slice(0, maxResults);
 }
+
+// ─── Reconciliation (Phone-as-Coach amendment) ───────────────────────────────
+
+/** Reduced activity summary returned by the activities list endpoint for matching. */
+export interface StravaActivityListItem {
+  id: number;
+  name: string;
+  type: string;          // 'Ride' | 'VirtualRide' | 'Run' | ...
+  start_date: string;    // ISO 8601
+  elapsed_time: number;  // seconds
+  moving_time: number;   // seconds
+  distance: number;      // metres
+  total_elevation_gain: number;
+  average_heartrate?: number;
+  average_watts?: number;
+}
+
+/**
+ * Fetch activities within a time window. Used by the reconciler matcher.
+ * after/before are unix-seconds.
+ */
+export async function getActivitiesInWindow(
+  afterSec: number,
+  beforeSec: number,
+  accessToken: string,
+): Promise<StravaActivityListItem[]> {
+  const list = await stravaGet<StravaActivityListItem[]>(
+    `/athlete/activities?after=${afterSec}&before=${beforeSec}&per_page=30&page=1`,
+    accessToken,
+  );
+  return list;
+}
+
+export interface StravaSegmentEffort {
+  id: number;
+  elapsed_time: number;
+  moving_time: number;
+  start_date: string;
+  segment: { id: number; name: string };
+  average_watts?: number;
+  average_heartrate?: number;
+}
+
+export interface StravaDetailedActivity {
+  id: number;
+  name: string;
+  type: string;
+  start_date: string;
+  elapsed_time: number;
+  moving_time: number;
+  distance: number;
+  total_elevation_gain: number;
+  average_heartrate?: number;
+  average_watts?: number;
+  segment_efforts?: StravaSegmentEffort[];
+  map?: { summary_polyline?: string };
+}
+
+export async function getActivityDetail(
+  activityId: number,
+  accessToken: string,
+): Promise<StravaDetailedActivity> {
+  return stravaGet<StravaDetailedActivity>(
+    `/activities/${activityId}?include_all_efforts=true`,
+    accessToken,
+  );
+}

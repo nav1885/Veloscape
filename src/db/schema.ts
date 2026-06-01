@@ -55,7 +55,33 @@ export const rides = sqliteTable('rides', {
   debriefText: text('debrief_text'),
   goalMode: text('goal_mode', { enum: ['pr', 'training', 'recovery'] }).notNull(),
   createdAt: integer('created_at').notNull(),
+  // Phone-as-Coach amendment
+  dataSource: text('data_source', { enum: ['provisional', 'strava'] }).notNull().default('provisional'),
+  importedFromStrava: integer('imported_from_strava', { mode: 'boolean' }).notNull().default(false),
+  lastReconcileAttemptAt: integer('last_reconcile_attempt_at'),
+  // Unified Home Feed amendment
+  coachedBySherpaa: integer('coached_by_sherpaa', { mode: 'boolean' }).notNull().default(false),
+  summaryGeneratedAt: integer('summary_generated_at'),
+  summaryModel: text('summary_model'),
 });
+
+// ─── Cue Log (Phone-as-Coach) ────────────────────────────────────────────────
+
+export const cueLogEntries = sqliteTable(
+  'cue_log_entries',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    rideId: text('ride_id').notNull().references(() => rides.id),
+    segmentId: text('segment_id').notNull(),
+    cueType: text('cue_type', { enum: ['approach', 'start', 'split25', 'split50', 'split75', 'end'] }).notNull(),
+    variant: text('variant', { enum: ['aggressive', 'moderate', 'recovery'] }),
+    text: text('text').notNull(),
+    firedAt: integer('fired_at').notNull(),
+  },
+  (t) => ({
+    rideIdIdx: index('idx_cue_log_ride_id').on(t.rideId),
+  })
+);
 
 // ─── Segment Effort ───────────────────────────────────────────────────────────
 
@@ -117,6 +143,11 @@ export const cachedActivities = sqliteTable(
     startDate: text('start_date').notNull(),
     summaryPolyline: text('summary_polyline').notNull(),
     fetchedAt: integer('fetched_at').notNull(),
+    // Unified Home Feed amendment
+    totalElevationGain: real('total_elevation_gain').notNull().default(0),
+    averageHeartrate: integer('average_heartrate'),
+    averageWatts: integer('average_watts'),
+    activityType: text('activity_type').notNull().default('Ride'),
   }
 );
 
@@ -153,3 +184,5 @@ export type Cue = typeof cues.$inferSelect;
 export type NewCue = typeof cues.$inferInsert;
 export type PacingModel = typeof pacingModels.$inferSelect;
 export type NewPacingModel = typeof pacingModels.$inferInsert;
+export type CueLogEntry = typeof cueLogEntries.$inferSelect;
+export type NewCueLogEntry = typeof cueLogEntries.$inferInsert;

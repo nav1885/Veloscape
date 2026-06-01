@@ -140,4 +140,64 @@ export async function runMigrations(): Promise<void> {
   } catch (e) {
     console.log('[migrations] detail_fetched_at already exists or error:', e);
   }
+
+  // v3: Phone-as-Coach amendment — Strava reconciliation state + cue log
+  try {
+    await db.run(sql`ALTER TABLE rides ADD COLUMN data_source TEXT NOT NULL DEFAULT 'provisional'`);
+    console.log('[migrations] added rides.data_source');
+  } catch (e) {
+    console.log('[migrations] rides.data_source already exists');
+  }
+  try {
+    await db.run(sql`ALTER TABLE rides ADD COLUMN imported_from_strava INTEGER NOT NULL DEFAULT 0`);
+    console.log('[migrations] added rides.imported_from_strava');
+  } catch (e) {
+    console.log('[migrations] rides.imported_from_strava already exists');
+  }
+  try {
+    await db.run(sql`ALTER TABLE rides ADD COLUMN last_reconcile_attempt_at INTEGER`);
+    console.log('[migrations] added rides.last_reconcile_attempt_at');
+  } catch (e) {
+    console.log('[migrations] rides.last_reconcile_attempt_at already exists');
+  }
+
+  await db.run(sql`
+    CREATE TABLE IF NOT EXISTS cue_log_entries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      ride_id TEXT NOT NULL REFERENCES rides(id),
+      segment_id TEXT NOT NULL,
+      cue_type TEXT NOT NULL,
+      variant TEXT,
+      text TEXT NOT NULL,
+      fired_at INTEGER NOT NULL
+    )
+  `);
+  await db.run(sql`
+    CREATE INDEX IF NOT EXISTS idx_cue_log_ride_id ON cue_log_entries(ride_id)
+  `);
+
+  // v4: Unified Home Feed amendment — coached flag + summary metadata + activity metrics
+  for (const stmt of [
+    sql`ALTER TABLE rides ADD COLUMN coached_by_sherpaa INTEGER NOT NULL DEFAULT 0`,
+    sql`ALTER TABLE rides ADD COLUMN summary_generated_at INTEGER`,
+    sql`ALTER TABLE rides ADD COLUMN summary_model TEXT`,
+    sql`ALTER TABLE cached_activities ADD COLUMN total_elevation_gain REAL NOT NULL DEFAULT 0`,
+    sql`ALTER TABLE cached_activities ADD COLUMN average_heartrate INTEGER`,
+    sql`ALTER TABLE cached_activities ADD COLUMN average_watts INTEGER`,
+    sql`ALTER TABLE cached_activities ADD COLUMN activity_type TEXT NOT NULL DEFAULT 'Ride'`,
+  ]) {
+    try {
+      await db.run(stmt);
+    } catch {
+      // Column already exists — migrations are idempotent
+    }
+  }
+
+  // Backfill: pre-amendment rides with cue_log entries are coached. Use a single
+  // UPDATE that flips coached_by_sherpaa for any ride with ≥1 cue log row.
+  await db.run(sql`
+    UPDATE rides SET coached_by_sherpaa = 1
+    WHERE id IN (SELECT DISTINCT ride_id FROM cue_log_entries)
+      AND coached_by_sherpaa = 0
+  `);
 }

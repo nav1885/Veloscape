@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { colors } from '../constants/colors';
+import { formatSpeedKmh, speedUnit } from '../utils/units';
 // TODO: animate sheet in with Reanimated spring (translateY from screenHeight to 0)
 
 interface Props {
@@ -63,8 +64,8 @@ export default function SegmentActiveOverlay({
             <Text style={styles.gapLabel}>vs PR pace</Text>
           </View>
           <View style={styles.gapCard}>
-            <Text style={styles.gapVal}>{Math.round(speedKmh)}</Text>
-            <Text style={styles.gapLabel}>km/h</Text>
+            <Text style={styles.gapVal}>{formatSpeedKmh(speedKmh).split(' ')[0]}</Text>
+            <Text style={styles.gapLabel}>{speedUnit()}</Text>
           </View>
           {powerWatts !== undefined && (
             <View style={styles.gapCard}>

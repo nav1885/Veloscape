@@ -68,6 +68,18 @@ export const colors = {
   errorDim: 'rgba(229,72,77,0.10)',
   errorBorder: 'rgba(229,72,77,0.20)',
 
+  // ─── Imported (Phone-as-Coach amendment) ───────────────────────────────────
+  // Used by SyncStateBadge "Imported" state — rides created via Debrief-Only
+  // Onboarding (importedFromStrava = true). Blue is deliberately distinct from
+  // gold (achievement) and green (live-ride synced); imported rides are neither
+  // a PR moment nor a phone-recorded ride — they are an imported artifact.
+  // Contrast on bg (#1C1C1E) = 6.1:1 WCAG AA; on bgDeep (#111111) = 6.9:1.
+  imported: '#4DA3FF',
+  // importedDim: tinted card backgrounds for Imported badge and Debrief CTA
+  importedDim: 'rgba(77,163,255,0.10)',
+  // importedBorder: standard tinted border for Imported surfaces
+  importedBorder: 'rgba(77,163,255,0.22)',
+
   // ─── Brand partners ────────────────────────────────────────────────────────
   // stravaOrange: Strava badge ONLY — never used as a UI accent color
   stravaOrange: '#FC4C02',

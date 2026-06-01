@@ -5,21 +5,28 @@
 import * as Speech from 'expo-speech';
 import { useSettingsStore } from '../store/settingsStore';
 
-const _queue: string[] = [];
+interface QueuedItem {
+  text: string;
+  onDone?: () => void;
+  onStopped?: () => void;
+}
+
+const _queue: QueuedItem[] = [];
 let _speaking = false;
 
 async function _processQueue(): Promise<void> {
   if (_speaking || _queue.length === 0) return;
   _speaking = true;
-  const text = _queue.shift()!;
+  const item = _queue.shift()!;
   const { ttsRate } = useSettingsStore.getState();
 
   return new Promise<void>((resolve) => {
-    Speech.speak(text, {
+    Speech.speak(item.text, {
       language: 'en-US',
       rate: ttsRate,
       onDone: () => {
         _speaking = false;
+        item.onDone?.();
         resolve();
         _processQueue();
       },
@@ -30,6 +37,7 @@ async function _processQueue(): Promise<void> {
       },
       onStopped: () => {
         _speaking = false;
+        item.onStopped?.();
         resolve();
       },
     });
@@ -37,9 +45,12 @@ async function _processQueue(): Promise<void> {
 }
 
 /** Queue a text utterance. Plays immediately if nothing else is speaking. */
-export function speak(text: string): void {
+export function speak(
+  text: string,
+  callbacks?: { onDone?: () => void; onStopped?: () => void },
+): void {
   if (!useSettingsStore.getState().ttsEnabled) return;
-  _queue.push(text);
+  _queue.push({ text, onDone: callbacks?.onDone, onStopped: callbacks?.onStopped });
   _processQueue();
 }
 
@@ -48,6 +59,11 @@ export function stop(): void {
   _queue.length = 0;
   _speaking = false;
   Speech.stop();
+}
+
+/** Whether TTS is currently speaking (alias for compat with new call sites). */
+export function isCurrentlySpeaking(): boolean {
+  return _speaking;
 }
 
 /** Whether TTS is currently speaking. */

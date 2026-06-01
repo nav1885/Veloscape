@@ -1,0 +1,977 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Sherpaa — Unified Home Feed (Stencil mockup)</title>
+<style>
+  :root {
+    --bg: #1C1C1E;
+    --bgDeep: #111111;
+    --bgOverlay: #1A1A1A;
+    --surface: #2A2A2A;
+    --surfaceAlt: #242424;
+    --surfaceDim: #222222;
+    --surfaceElevated: #1E1E1E;
+    --borderSubtle: #2E2E2E;
+    --border: #363636;
+    --borderMuted: #333333;
+    --borderStrong: #3A3A3A;
+    --gold: #F5C842;
+    --goldDim: rgba(245,200,66,0.10);
+    --goldBorder: rgba(245,200,66,0.20);
+    --textPrimary: #F0F0F0;
+    --textSecondary: #888888;
+    --textMuted: #555555;
+    --textDim: #444444;
+    --textOnGold: #000000;
+    --success: #30A46C;
+    --successDim: rgba(48,164,108,0.08);
+    --successBorder: rgba(48,164,108,0.20);
+    --error: #E5484D;
+    --errorDim: rgba(229,72,77,0.10);
+    --errorBorder: rgba(229,72,77,0.20);
+    --imported: #4DA3FF;
+    --importedDim: rgba(77,163,255,0.10);
+    --importedBorder: rgba(77,163,255,0.22);
+    --mapBg: #1A2030;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #0a0a0c;
+    color: var(--textPrimary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page {
+    max-width: 1700px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+  h1 {
+    font-size: 22px; font-weight: 700; margin: 0 0 4px;
+    letter-spacing: -0.4px;
+  }
+  .lede {
+    color: #999; font-size: 14px; margin: 0 0 32px;
+    max-width: 720px; line-height: 1.5;
+  }
+  .deck {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    gap: 32px;
+    align-items: start;
+  }
+  .frame-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .frame-title {
+    font-size: 13px; font-weight: 600; color: #999; letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+  .frame-sub { font-size: 12px; color: #666; max-width: 360px; text-align: center; line-height: 1.5; }
+  /* Phone frame */
+  .phone {
+    width: 380px;
+    height: 800px;
+    border-radius: 44px;
+    background: #000;
+    padding: 10px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 0 1.5px #222 inset;
+    position: relative;
+  }
+  .screen {
+    width: 100%; height: 100%;
+    border-radius: 34px;
+    background: var(--bg);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  .status-bar {
+    height: 36px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 22px;
+    font-size: 12px; font-weight: 600; color: var(--textPrimary);
+  }
+  .status-icons { display: flex; gap: 6px; opacity: 0.85; font-size: 11px; }
+  .scroll { flex: 1; overflow-y: auto; padding: 0; }
+  .scroll::-webkit-scrollbar { width: 0; }
+  .tab-bar {
+    height: 64px;
+    border-top: 1px solid var(--borderMuted);
+    display: flex; justify-content: stretch;
+  }
+  .tab {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    color: var(--textDim); font-size: 26px;
+    border-right: 0.5px solid var(--borderMuted);
+  }
+  .tab:last-child { border-right: 0; }
+  .tab.active { color: var(--gold); }
+  .home-ind {
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    width: 128px; height: 4px; border-radius: 99px; background: rgba(255,255,255,0.7);
+  }
+
+  /* Home content */
+  .home-header { padding: 16px 20px 12px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .greeting { font-size: 18px; font-weight: 600; }
+  .meta { font-size: 12px; color: var(--textMuted); margin-top: 4px; }
+  .avatar {
+    width: 36px; height: 36px; border-radius: 999px; background: var(--gold);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--textOnGold); font-weight: 700; font-size: 14px;
+  }
+  .card {
+    margin: 0 20px 10px; padding: 16px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .card.plan { padding: 18px 16px; }
+  .card-emoji { font-size: 24px; }
+  .card-body { flex: 1; }
+  .card-title { font-size: 16px; font-weight: 700; }
+  .card-sub { font-size: 12px; color: var(--textMuted); margin-top: 2px; }
+  .card-chevron { font-size: 22px; color: var(--gold); }
+
+  .debrief-card {
+    margin: 0 20px 12px; padding: 14px 16px;
+    background: var(--importedDim); border: 1px solid var(--importedBorder); border-radius: 12px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .debrief-icon {
+    width: 40px; height: 40px; border-radius: 999px;
+    background: var(--importedDim); border: 1px solid var(--importedBorder);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--imported); font-size: 22px;
+  }
+  .debrief-body { flex: 1; }
+  .debrief-title { font-size: 16px; font-weight: 700; }
+  .debrief-sub { font-size: 12px; color: var(--textSecondary); margin-top: 2px; line-height: 1.4; }
+
+  .section-label {
+    padding: 18px 20px 10px;
+    font-size: 11px; font-weight: 600; color: var(--textDim);
+    letter-spacing: 1.2px; text-transform: uppercase;
+  }
+
+  /* RideFeedRow */
+  .ride-row {
+    margin: 0 20px 10px; padding: 14px 16px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  }
+  .ride-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .ride-title { font-size: 15px; font-weight: 600; }
+  .ride-date { font-size: 11px; font-weight: 500; color: var(--textDim); }
+  .ride-stats { font-size: 14px; color: var(--textSecondary); font-weight: 500; margin-bottom: 10px; }
+  .ride-bottom { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    height: 22px; padding: 0 8px; border-radius: 999px; border: 1px solid;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
+  }
+  .pill .dot { width: 8px; height: 8px; border-radius: 999px; }
+  .pill.synced { background: var(--successDim); border-color: var(--successBorder); color: var(--success); }
+  .pill.synced .dot { background: var(--success); }
+  .pill.awaiting { background: var(--goldDim); border-color: var(--goldBorder); color: var(--gold); }
+  .pill.awaiting .dot {
+    background: var(--gold);
+    width: 8px; height: 8px;
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .pill.phone { background: var(--surfaceAlt); border-color: var(--borderSubtle); color: var(--textSecondary); }
+  .pill.phone .dot { background: var(--textMuted); }
+  .pill.imported { background: var(--importedDim); border-color: var(--importedBorder); color: var(--imported); }
+  .pill.imported .dot { background: var(--imported); }
+  .pill.coached {
+    background: var(--goldDim); border-color: var(--goldBorder); color: var(--gold);
+    height: 20px; padding: 0 7px; font-size: 11px;
+  }
+  @keyframes pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+
+  .audio-btn {
+    width: 36px; height: 36px; border-radius: 999px;
+    background: var(--goldDim); border: 1px solid var(--goldBorder);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--gold); font-size: 14px; flex-shrink: 0;
+  }
+  .audio-btn.playing { background: var(--gold); color: var(--textOnGold); }
+  .audio-btn.lg {
+    width: auto; height: 56px;
+    padding: 0 28px; gap: 10px; border-radius: 999px;
+    background: var(--gold); color: var(--textOnGold);
+    border: 0; font-size: 16px; font-weight: 700;
+    margin: 8px 20px 0;
+    align-self: stretch;
+  }
+
+  .load-more {
+    text-align: center; padding: 16px;
+    color: var(--gold); font-size: 13px; font-weight: 600;
+  }
+
+  /* PostRideSummary */
+  .map-strip {
+    height: 200px;
+    background: linear-gradient(180deg, var(--mapBg) 0%, #15212F 60%, var(--bg) 100%);
+    position: relative;
+  }
+  .map-route {
+    position: absolute; left: 30px; right: 30px; top: 60px; bottom: 60px;
+  }
+  .map-route svg { width: 100%; height: 100%; }
+  .ride-page-title {
+    padding: 12px 20px 0;
+  }
+  .ride-page-date {
+    font-size: 11px; font-weight: 600; color: var(--textMuted);
+    text-transform: uppercase; letter-spacing: 0.8px;
+  }
+  .ride-page-name {
+    font-size: 22px; font-weight: 700; letter-spacing: -0.4px; margin-top: 2px;
+  }
+  .badge-row {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    padding: 14px 20px 4px;
+  }
+  .pill.md {
+    height: 28px; padding: 0 12px; gap: 8px; font-size: 13px; letter-spacing: 0.2px;
+  }
+  .pill.md .dot { width: 10px; height: 10px; }
+  .pill.coached.md { height: 26px; padding: 0 10px; gap: 6px; font-size: 13px; }
+  .wrong-link {
+    padding: 6px 20px 12px; font-size: 13px; color: var(--textMuted);
+    text-decoration: underline;
+  }
+
+  .metrics-block { padding: 16px 20px 0; display: flex; flex-direction: column; gap: 8px; }
+  .metric-row {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 12px 14px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .metric-row.headline {
+    font-size: 16px; font-weight: 700; color: var(--textPrimary); padding: 12px 14px;
+  }
+  .metric-label { font-size: 11px; font-weight: 700; color: var(--textMuted); letter-spacing: 0.6px; text-transform: uppercase; }
+  .metric-val { font-size: 15px; font-weight: 700; color: var(--textPrimary); font-variant-numeric: tabular-nums; }
+  .metric-delta { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .delta.up { color: var(--success); }
+  .delta.down { color: var(--error); }
+  .delta.flat { color: var(--textSecondary); }
+  .building-baseline {
+    background: var(--surfaceAlt); border: 1px dashed var(--borderMuted); border-radius: 10px;
+    padding: 10px 14px; font-size: 12px; color: var(--textSecondary);
+  }
+
+  .summary-text {
+    padding: 20px; font-size: 15px; line-height: 22px; color: var(--textPrimary);
+  }
+  .shimmer-row {
+    height: 16px; border-radius: 4px; margin-bottom: 8px;
+    background: linear-gradient(90deg, var(--surfaceAlt) 0%, var(--surfaceElevated) 50%, var(--surfaceAlt) 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.6s linear infinite;
+  }
+  .shimmer-row.w90 { width: 92%; }
+  .shimmer-row.w70 { width: 70%; }
+  .shimmer-row.w50 { width: 48%; }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .summary-fallback-meta {
+    font-size: 11px; color: var(--textMuted); margin-top: 6px; font-style: italic;
+  }
+
+  .seg-section { padding: 20px 0 12px; }
+  .seg-row {
+    margin: 0 20px 8px; padding: 14px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  }
+  .seg-row.pr {
+    background: var(--goldDim); border-color: var(--goldBorder);
+  }
+  .seg-row-top { display: flex; justify-content: space-between; align-items: center; }
+  .seg-name { font-size: 16px; font-weight: 600; }
+  .seg-time { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .seg-time.pr-time { color: var(--gold); }
+  .seg-row-bottom {
+    display: flex; justify-content: space-between; align-items: flex-end; gap: 10px;
+    margin-top: 6px;
+  }
+  .seg-meta { font-size: 11px; color: var(--textMuted); }
+  .seg-source { font-size: 11px; color: var(--textMuted); font-style: italic; margin-top: 2px; }
+  .sparkline { width: 60px; height: 20px; flex-shrink: 0; }
+  .pr-tag {
+    display: inline-block; background: var(--goldDim); border: 1px solid var(--goldBorder);
+    border-radius: 999px; padding: 2px 8px; font-size: 10px; font-weight: 800; color: var(--gold);
+    letter-spacing: 0.4px;
+  }
+
+  .done-btn {
+    margin: 16px 20px 16px; height: 54px; border-radius: 999px;
+    background: var(--gold); color: var(--textOnGold); font-size: 16px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Settings */
+  .settings-title { padding: 16px 20px 12px; font-size: 28px; font-weight: 700; }
+  .settings-section { padding: 0 16px 22px; }
+  .settings-section-title { font-size: 11px; font-weight: 700; color: var(--textSecondary); letter-spacing: 1.2px; padding: 0 4px 6px; }
+  .settings-section-sub { font-size: 13px; color: var(--textSecondary); padding: 0 4px 8px; }
+  .settings-body { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .s-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 0.5px solid var(--borderSubtle); }
+  .s-row:last-child { border-bottom: 0; }
+  .s-label { font-size: 15px; color: var(--textPrimary); }
+  .s-sub { font-size: 11px; color: var(--textMuted); margin-top: 2px; }
+  .s-val { font-size: 14px; color: var(--textSecondary); }
+  .switch {
+    width: 44px; height: 26px; border-radius: 13px;
+    background: var(--gold); position: relative;
+  }
+  .switch::after {
+    content: ''; position: absolute; right: 3px; top: 3px;
+    width: 20px; height: 20px; border-radius: 999px; background: white;
+  }
+  .switch.off { background: var(--surfaceAlt); }
+  .switch.off::after { right: auto; left: 3px; }
+  .s-chevron { font-size: 22px; color: var(--textMuted); }
+  .disclosure-body {
+    margin: 0 16px 12px;
+    padding: 12px;
+    background: var(--surfaceAlt); border-radius: 8px;
+    font-size: 13px; color: var(--textSecondary); line-height: 1.5;
+  }
+
+  /* History list */
+  .history-row {
+    margin: 0 16px 10px; padding: 16px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  }
+  .h-top { display: flex; justify-content: space-between; margin-bottom: 12px; }
+  .h-name { font-size: 16px; font-weight: 600; }
+  .h-date { font-size: 12px; color: var(--textSecondary); }
+  .h-stats { display: flex; gap: 18px; margin-bottom: 10px; }
+  .h-stat .v { font-size: 15px; font-weight: 700; }
+  .h-stat .l { font-size: 11px; color: var(--textSecondary); margin-top: 2px; }
+  .h-stat .v.accent { color: var(--gold); }
+  .h-tagrow { display: flex; gap: 6px; flex-wrap: wrap; }
+  .goal-tag { padding: 3px 8px; border-radius: 6px; border: 1px solid; font-size: 10px; font-weight: 600; letter-spacing: 0.5px; }
+  .goal-tag.pr { background: var(--goldDim); border-color: var(--goldBorder); color: var(--textPrimary); }
+  .goal-tag.training { background: var(--successDim); border-color: var(--successBorder); color: var(--textPrimary); }
+  .goal-tag.recovery { background: var(--surfaceAlt); border-color: var(--borderSubtle); color: var(--textPrimary); }
+
+  /* Annotations / callouts */
+  .annot { font-size: 11px; color: #777; margin-top: 8px; max-width: 360px; }
+  .annot strong { color: #aaa; }
+  .pulse-now {
+    position: absolute; top: 12px; right: 14px;
+    background: rgba(245,200,66,0.16); color: var(--gold);
+    padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
+  }
+  .legend {
+    margin-top: 24px;
+    background: #15151a; border: 1px solid #2a2a2e; border-radius: 12px;
+    padding: 18px 22px; font-size: 13px; color: #aaa; line-height: 1.6;
+    max-width: 1100px;
+  }
+  .legend strong { color: var(--gold); }
+  .legend ul { margin: 8px 0 0 0; padding-left: 18px; }
+
+  .deck-row {
+    display: flex; gap: 32px; align-items: flex-start; margin-bottom: 32px;
+    overflow-x: auto; padding-bottom: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Sherpaa — Unified Home Feed & Summary-for-Every-Ride</h1>
+  <p class="lede">
+    Visual mockup of the four screens this amendment touches. Built from the actual color tokens in
+    <code>src/constants/colors.ts</code> and the layout decisions in
+    <code>docs/design/UnifiedHomeFeed_DesignSpec.md</code>. This is not a screenshot of the real app — it's a faithful
+    static render of the intended designs.
+  </p>
+
+  <h2 style="font-size:14px; color:#999; letter-spacing:1.2px; text-transform:uppercase; margin:24px 0 12px;">Flow F &nbsp;·&nbsp; Home — Unified Ride Feed</h2>
+  <div class="deck-row">
+
+    <!-- HOME: with rides -->
+    <div class="frame-wrap">
+      <div class="frame-title">Home · with rides</div>
+      <div class="phone"><div class="screen">
+        <div class="status-bar">
+          <span>9:41</span>
+          <span class="status-icons">●●●● 4G ▮</span>
+        </div>
+        <div class="scroll">
+          <div class="home-header">
+            <div>
+              <div class="greeting">Good morning, Jane.</div>
+              <div class="meta">12 starred segments · Last synced 2h ago</div>
+            </div>
+            <div class="avatar">J</div>
+          </div>
+
+          <div class="card plan">
+            <div class="card-emoji">🚴</div>
+            <div class="card-body">
+              <div class="card-title">Plan Ride</div>
+              <div class="card-sub">Set route, choose goal, generate cues</div>
+            </div>
+            <div class="card-chevron">›</div>
+          </div>
+
+          <div class="debrief-card">
+            <div class="debrief-icon">♪</div>
+            <div class="debrief-body">
+              <div class="debrief-title">Hear a past ride debriefed</div>
+              <div class="debrief-sub">60-second voice summary of any Strava ride.</div>
+            </div>
+            <div style="color:var(--textMuted); font-size:22px;">›</div>
+          </div>
+
+          <div class="section-label">Recent Rides</div>
+
+          <div class="ride-row">
+            <div class="ride-top">
+              <div class="ride-title">Morning Climb to Grizzly</div>
+              <div class="ride-date">APR 11</div>
+            </div>
+            <div class="ride-stats">42.1 km · 1:38:24</div>
+            <div class="ride-bottom">
+              <div class="badges">
+                <span class="pill synced"><span class="dot"></span>Synced from Strava</span>
+                <span class="pill coached">🎙 Coached</span>
+              </div>
+              <div class="audio-btn">▶</div>
+            </div>
+          </div>
+
+          <div class="ride-row">
+            <div class="ride-top">
+              <div class="ride-title">Trainer interval</div>
+              <div class="ride-date">YESTERDAY</div>
+            </div>
+            <div class="ride-stats">22.0 km · 0:50:14</div>
+            <div class="ride-bottom">
+              <div class="badges">
+                <span class="pill synced"><span class="dot"></span>Synced from Strava</span>
+              </div>
+              <div class="audio-btn">▶</div>
+            </div>
+          </div>
+
+          <div class="ride-row">
+            <div class="ride-top">
+              <div class="ride-title">Recovery spin</div>
+              <div class="ride-date">APR 8</div>
+            </div>
+            <div class="ride-stats">18.4 km · 0:42:30</div>
+            <div class="ride-bottom">
+              <div class="badges">
+                <span class="pill phone"><span class="dot"></span>Phone-recorded</span>
+                <span class="pill coached">🎙 Coached</span>
+              </div>
+              <div class="audio-btn">▶</div>
+            </div>
+          </div>
+
+          <div class="ride-row">
+            <div class="ride-top">
+              <div class="ride-title">Paradise Loop</div>
+              <div class="ride-date">APR 5</div>
+            </div>
+            <div class="ride-stats">28.4 km · 1:02:18</div>
+            <div class="ride-bottom">
+              <div class="badges">
+                <span class="pill imported"><span class="dot"></span>Imported</span>
+              </div>
+              <div class="audio-btn">▶</div>
+            </div>
+          </div>
+
+          <div class="load-more">Load more</div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab active">⌂</div>
+          <div class="tab">◈</div>
+          <div class="tab">◷</div>
+          <div class="tab">⚙</div>
+        </div>
+        <div class="home-ind"></div>
+      </div></div>
+      <p class="annot">
+        <strong>RideFeedRow</strong> for every ride, last 30 days. Sherpaa-coached rides get the gold
+        <code>🎙 Coached</code> pill alongside the data-provenance badge. Inline ▶ button plays the audio summary
+        without navigating away.
+      </p>
+    </div>
+
+    <!-- HOME: skeleton -->
+    <div class="frame-wrap">
+      <div class="frame-title">Home · first-ever load</div>
+      <div class="phone"><div class="screen">
+        <div class="status-bar"><span>9:41</span><span class="status-icons">●●●● 4G ▮</span></div>
+        <div class="scroll">
+          <div class="home-header">
+            <div>
+              <div class="greeting">Good morning, Jane.</div>
+              <div class="meta">Loading your rides...</div>
+            </div>
+            <div class="avatar">J</div>
+          </div>
+          <div class="card plan">
+            <div class="card-emoji">🚴</div>
+            <div class="card-body"><div class="card-title">Plan Ride</div><div class="card-sub">Set route, choose goal, generate cues</div></div>
+            <div class="card-chevron">›</div>
+          </div>
+          <div class="section-label">Recent Rides</div>
+          <div class="ride-row">
+            <div class="shimmer-row w70" style="height:18px"></div>
+            <div class="shimmer-row w90"></div>
+            <div class="shimmer-row w50"></div>
+          </div>
+          <div class="ride-row">
+            <div class="shimmer-row w70" style="height:18px"></div>
+            <div class="shimmer-row w90"></div>
+            <div class="shimmer-row w50"></div>
+          </div>
+          <div class="ride-row">
+            <div class="shimmer-row w70" style="height:18px"></div>
+            <div class="shimmer-row w90"></div>
+            <div class="shimmer-row w50"></div>
+          </div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab active">⌂</div><div class="tab">◈</div><div class="tab">◷</div><div class="tab">⚙</div>
+        </div>
+        <div class="home-ind"></div>
+      </div></div>
+      <p class="annot">
+        First-ever ingest shows 3 shimmer rows (never more). Header label is
+        <em>"Loading your rides…"</em> instead of last-sync timestamp.
+      </p>
+    </div>
+
+    <!-- HOME: empty -->
+    <div class="frame-wrap">
+      <div class="frame-title">Home · empty (no Strava)</div>
+      <div class="phone"><div class="screen">
+        <div class="status-bar"><span>9:41</span><span class="status-icons">●●●● 4G ▮</span></div>
+        <div class="scroll">
+          <div class="home-header">
+            <div>
+              <div class="greeting">Good morning, Jane.</div>
+              <div class="meta">Connect Strava to get started</div>
+            </div>
+            <div class="avatar">J</div>
+          </div>
+          <div class="card plan">
+            <div class="card-emoji">🚴</div>
+            <div class="card-body"><div class="card-title">Plan Ride</div><div class="card-sub">Set route, choose goal, generate cues</div></div>
+            <div class="card-chevron">›</div>
+          </div>
+          <div class="section-label">Recent Rides</div>
+          <div style="padding: 40px 32px; text-align:center;">
+            <div style="font-size:16px; color:var(--textSecondary); margin-bottom:8px; font-weight:500;">
+              Connect Strava to see your recent rides.
+            </div>
+            <div style="height:44px; padding:0 24px; border-radius:999px; border:1px solid var(--borderStrong); background:var(--surface); display:inline-flex; align-items:center; color:var(--textPrimary); font-size:14px; font-weight:600; margin-top:16px;">Connect Strava →</div>
+          </div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab active">⌂</div><div class="tab">◈</div><div class="tab">◷</div><div class="tab">⚙</div>
+        </div>
+        <div class="home-ind"></div>
+      </div></div>
+      <p class="annot">No CTA pressure for the "no rides in 30 days" case — that variant is just informative text.</p>
+    </div>
+  </div>
+
+  <h2 style="font-size:14px; color:#999; letter-spacing:1.2px; text-transform:uppercase; margin:32px 0 12px;">Flow G &nbsp;·&nbsp; PostRideSummary — Lazy LLM Summary + Metrics</h2>
+  <div class="deck-row">
+
+    <!-- POSTRIDE: loaded -->
+    <div class="frame-wrap">
+      <div class="frame-title">PostRideSummary · loaded</div>
+      <div class="phone"><div class="screen">
+        <div class="status-bar"><span>9:41</span><span class="status-icons">●●●● 4G ▮</span></div>
+        <div class="scroll">
+          <div class="map-strip">
+            <div class="map-route">
+              <svg viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M20,80 Q60,20 110,40 T200,30 T280,60" stroke="#F5C842" stroke-width="3" fill="none" stroke-linecap="round"/>
+                <circle cx="20" cy="80" r="5" fill="#F5C842"/>
+                <circle cx="120" cy="40" r="4" fill="#F5C842"/>
+                <circle cx="200" cy="30" r="4" fill="#F5C842"/>
+                <circle cx="280" cy="60" r="5" fill="#F5C842"/>
+              </svg>
+            </div>
+            <div class="pulse-now">JUST FINISHED</div>
+          </div>
+          <div class="ride-page-title">
+            <div class="ride-page-date">APR 11</div>
+            <div class="ride-page-name">Morning Climb to Grizzly</div>
+          </div>
+          <div class="badge-row">
+            <span class="pill md synced"><span class="dot"></span>Synced from Strava</span>
+            <span class="pill coached md">🎙 Coached</span>
+          </div>
+          <div class="wrong-link">Wrong activity?</div>
+
+          <div class="metrics-block">
+            <div class="metric-row headline">
+              <span>42.1 km · 1:38:24 · 612 m</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Avg HR</span>
+              <div style="display:flex; gap:14px; align-items:baseline;">
+                <span class="metric-val">142 bpm</span>
+                <span class="metric-delta delta.down" style="color:var(--success);">▼ 4%</span>
+              </div>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Avg Power</span>
+              <div style="display:flex; gap:14px; align-items:baseline;">
+                <span class="metric-val">287 W</span>
+                <span class="metric-delta" style="color:var(--success);">▲ 2%</span>
+              </div>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">This week</span>
+              <div style="display:flex; gap:14px; align-items:baseline;">
+                <span class="metric-val">168 km</span>
+                <span class="metric-delta" style="color:var(--success);">▲</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="summary-text">
+            Strong climb today. You held 287 W through the false flat — that's 2% above your 28-day average for similar terrain, with 4% lower HR. Hawk Hill came in 4 seconds under your PR; the final pitch is where you found it. Recovery looking solid.
+          </div>
+
+          <div class="audio-btn lg">▶  Play debrief</div>
+
+          <div class="seg-section">
+            <div class="section-label" style="padding-bottom:10px;">Segments</div>
+            <div class="seg-row pr">
+              <div class="seg-row-top">
+                <div class="seg-name">Hawk Hill</div>
+                <div style="display:flex; gap:10px; align-items:center;">
+                  <span class="seg-time pr-time">4:08</span>
+                  <span class="pr-tag">PR</span>
+                </div>
+              </div>
+              <div class="seg-row-bottom">
+                <div>
+                  <div class="seg-meta">PR: 4:12 · gap −4s</div>
+                  <div class="seg-source">via Strava</div>
+                </div>
+                <svg class="sparkline" viewBox="0 0 60 20">
+                  <polyline points="2,12 14,15 26,11 38,9 56,4" stroke="#F5C842" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                  <circle cx="56" cy="4" r="2.5" fill="#F5C842"/>
+                  <line x1="2" y1="14" x2="58" y2="14" stroke="#444" stroke-width="0.5" stroke-dasharray="2 2"/>
+                </svg>
+              </div>
+            </div>
+            <div class="seg-row">
+              <div class="seg-row-top">
+                <div class="seg-name">Paradise Loop</div>
+                <div class="seg-time">6:42</div>
+              </div>
+              <div class="seg-row-bottom">
+                <div>
+                  <div class="seg-meta">PR: 6:38 · gap +4s</div>
+                  <div class="seg-source">via Strava</div>
+                </div>
+                <svg class="sparkline" viewBox="0 0 60 20">
+                  <polyline points="2,6 14,7 26,8 38,9 56,11" stroke="#F5C842" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+                  <circle cx="56" cy="11" r="2.5" fill="#F5C842"/>
+                  <line x1="2" y1="6" x2="58" y2="6" stroke="#444" stroke-width="0.5" stroke-dasharray="2 2"/>
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <div class="done-btn">Done</div>
+        </div>
+        <div class="home-ind"></div>
+      </div></div>
+      <p class="annot">
+        <strong>Section order:</strong> map → date/title → badge row → MetricsBlock → SummaryText → big "Play debrief"
+        button → segments (with sparklines) → Done. Sparkline shows last 5 efforts; the dot is the latest.
+      </p>
+    </div>
+
+    <!-- POSTRIDE: loading -->
+    <div class="frame-wrap">
+      <div class="frame-title">PostRideSummary · shimmer (LLM in-flight)</div>
+      <div class="phone"><div class="screen">
+        <div class="status-bar"><span>9:41</span><span class="status-icons">●●●● 4G ▮</span></div>
+        <div class="scroll">
+          <div class="map-strip">
+            <div class="map-route">
+              <svg viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M20,80 Q60,20 110,40 T200,30 T280,60" stroke="#F5C842" stroke-width="3" fill="none" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+          <div class="ride-page-title">
+            <div class="ride-page-date">APR 5</div>
+            <div class="ride-page-name">Paradise Loop</div>
+          </div>
+          <div class="badge-row">
+            <span class="pill md synced"><span class="dot"></span>Synced from Strava</span>
+          </div>
+          <div class="metrics-block">
+            <div class="metric-row headline">
+              <span>28.4 km · 1:02:18 · 340 m</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Avg HR</span>
+              <div style="display:flex; gap:14px; align-items:baseline;">
+                <span class="metric-val">148 bpm</span>
+                <span class="metric-delta" style="color:var(--textSecondary);">▬</span>
+              </div>
+            </div>
+            <div class="metric-row">
+              <span class="metric-label">Avg Power</span>
+              <div style="display:flex; gap:14px; align-items:baseline;">
+                <span class="metric-val">240 W</span>
+                <span class="metric-delta" style="color:var(--error);">▼ 5%</span>
+              </div>
+            </div>
+            <div class="building-baseline">📊 Building your baseline · 3 of 5 rides</div>
+          </div>
+          <div class="summary-text">
+            <div class="shimmer-row w90"></div>
+            <div class="shimmer-row w90"></div>
+            <div class="shimmer-row w70"></div>
+          </div>
+          <div class="audio-btn lg" style="opacity:0.4;">▶  Play debrief</div>
+        </div>
+        <div class="home-ind"></div>
+      </div></div>
+      <p class="annot">
+        <strong>Shimmer state:</strong> only the summary text area pulses. Everything else is fully rendered. LLM call has
+        a 2s client-side timeout; on timeout, deterministic fallback text appears with the same cross-fade. Audio button
+        is dimmed until summary is loaded.
+      </p>
+    </div>
+
+    <!-- POSTRIDE: degraded -->
+    <div class="frame-wrap">
+      <div class="frame-title">PostRideSummary · phone-recorded, no power/HR</div>
+      <div class="phone"><div class="screen">
+        <div class="status-bar"><span>9:41</span><span class="status-icons">●●●● 4G ▮</span></div>
+        <div class="scroll">
+          <div class="map-strip">
+            <div class="map-route">
+              <svg viewBox="0 0 300 100" preserveAspectRatio="none">
+                <path d="M20,80 Q60,20 110,40 T200,30 T280,60" stroke="#F5C842" stroke-width="3" fill="none" stroke-linecap="round"/>
+              </svg>
+            </div>
+          </div>
+          <div class="ride-page-title">
+            <div class="ride-page-date">APR 8</div>
+            <div class="ride-page-name">Recovery spin</div>
+          </div>
+          <div class="badge-row">
+            <span class="pill md phone"><span class="dot"></span>Phone-recorded</span>
+            <span class="pill coached md">🎙 Coached</span>
+          </div>
+
+          <div class="metrics-block">
+            <div class="metric-row headline">
+              <span>12.4 km · 0:32:10 · — m</span>
+            </div>
+            <div class="building-baseline">📊 Building your baseline · 1 of 5 rides</div>
+          </div>
+
+          <div class="summary-text">
+            Phone-tracked ride. 12.4 km in 32 minutes. No detailed metrics — connect a head unit for richer summaries.
+          </div>
+
+          <div class="audio-btn lg">▶  Play debrief</div>
+
+          <div class="seg-section" style="padding-top:8px;">
+            <div class="section-label" style="padding-bottom:10px;">Segments</div>
+            <div style="text-align:center; padding:18px; color:var(--textMuted); font-style:italic; font-size:13px;">No starred segments on this route.</div>
+          </div>
+        </div>
+        <div class="home-ind"></div>
+      </div></div>
+      <p class="annot">
+        <strong>Graceful degradation:</strong> phone-only ride with no head-unit data. MetricsBlock collapses to the
+        headline + baseline-builder hint. SummaryText falls back to a literal description. SEGMENTS section shows the
+        empty-state copy.
+      </p>
+    </div>
+  </div>
+
+  <h2 style="font-size:14px; color:#999; letter-spacing:1.2px; text-transform:uppercase; margin:32px 0 12px;">Flows H &amp; I &nbsp;·&nbsp; History pill · Settings toggle</h2>
+  <div class="deck-row">
+
+    <!-- HISTORY -->
+    <div class="frame-wrap">
+      <div class="frame-title">History · with CoachedPill</div>
+      <div class="phone"><div class="screen">
+        <div class="status-bar"><span>9:41</span><span class="status-icons">●●●● 4G ▮</span></div>
+        <div class="scroll">
+          <div style="padding: 16px 20px 14px;">
+            <div style="font-size:26px; font-weight:700;">Ride History</div>
+            <div style="font-size:13px; color:var(--textSecondary); margin-top:4px;">12 rides · 1 awaiting Strava</div>
+          </div>
+
+          <div class="history-row">
+            <div class="h-top">
+              <div class="h-name">Morning Ride</div>
+              <div class="h-date">APR 11</div>
+            </div>
+            <div class="h-stats">
+              <div class="h-stat"><div class="v">48.2 km</div><div class="l">Distance</div></div>
+              <div class="h-stat"><div class="v">2h 14m</div><div class="l">Duration</div></div>
+              <div class="h-stat"><div class="v">4</div><div class="l">Segments</div></div>
+              <div class="h-stat"><div class="v accent">1</div><div class="l">PRs</div></div>
+            </div>
+            <div class="h-tagrow">
+              <div class="goal-tag pr">PR ATTEMPT</div>
+              <span class="pill synced"><span class="dot"></span>Synced from Strava</span>
+              <span class="pill coached">🎙 Coached</span>
+            </div>
+          </div>
+
+          <div class="history-row">
+            <div class="h-top">
+              <div class="h-name">Trainer Ride</div>
+              <div class="h-date">APR 10</div>
+            </div>
+            <div class="h-stats">
+              <div class="h-stat"><div class="v">22.0 km</div><div class="l">Distance</div></div>
+              <div class="h-stat"><div class="v">50m</div><div class="l">Duration</div></div>
+              <div class="h-stat"><div class="v">0</div><div class="l">Segments</div></div>
+              <div class="h-stat"><div class="v">0</div><div class="l">PRs</div></div>
+            </div>
+            <div class="h-tagrow">
+              <div class="goal-tag training">TRAINING</div>
+              <span class="pill synced"><span class="dot"></span>Synced from Strava</span>
+            </div>
+          </div>
+
+          <div class="history-row">
+            <div class="h-top">
+              <div class="h-name">Recovery Spin</div>
+              <div class="h-date">APR 8</div>
+            </div>
+            <div class="h-stats">
+              <div class="h-stat"><div class="v">18.4 km</div><div class="l">Distance</div></div>
+              <div class="h-stat"><div class="v">42m</div><div class="l">Duration</div></div>
+              <div class="h-stat"><div class="v">3</div><div class="l">Segments</div></div>
+              <div class="h-stat"><div class="v">0</div><div class="l">PRs</div></div>
+            </div>
+            <div class="h-tagrow">
+              <div class="goal-tag recovery">RECOVERY</div>
+              <span class="pill phone"><span class="dot"></span>Phone-recorded</span>
+              <span class="pill coached">🎙 Coached</span>
+            </div>
+          </div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab">⌂</div><div class="tab">◈</div><div class="tab active">◷</div><div class="tab">⚙</div>
+        </div>
+        <div class="home-ind"></div>
+      </div></div>
+      <p class="annot">Existing History rows get one new element: the <code>🎙 Coached</code> pill alongside the sync badge.</p>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="frame-wrap">
+      <div class="frame-title">Settings · new toggle (Voice & Audio)</div>
+      <div class="phone"><div class="screen">
+        <div class="status-bar"><span>9:41</span><span class="status-icons">●●●● 4G ▮</span></div>
+        <div class="scroll">
+          <div class="settings-title">Settings</div>
+
+          <div class="settings-section">
+            <div class="settings-section-title">VOICE &amp; AUDIO</div>
+            <div class="settings-body">
+              <div class="s-row">
+                <div class="s-label">Voice cues</div>
+                <div class="switch"></div>
+              </div>
+              <div class="s-row">
+                <div>
+                  <div class="s-label">Speech rate</div>
+                  <div class="s-sub">━━●━━━ Normal</div>
+                </div>
+                <div class="s-chevron">›</div>
+              </div>
+              <div class="s-row" style="background: rgba(245,200,66,0.05);">
+                <div style="flex:1; padding-right:12px;">
+                  <div class="s-label">Generate text summaries for non-coached rides</div>
+                  <div class="s-sub">Off saves LLM cost. Default is on.</div>
+                </div>
+                <div class="switch"></div>
+              </div>
+              <div class="s-row">
+                <div class="s-label">Test voice</div>
+                <div class="s-chevron">›</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-section">
+            <div class="settings-section-title">STRAVA</div>
+            <div class="settings-section-sub">Sherpaa coaches. Your watch records.</div>
+            <div class="settings-body">
+              <div class="s-row">
+                <div class="s-label">Last segment sync</div>
+                <div class="s-val">2h ago</div>
+              </div>
+              <div class="s-row">
+                <div class="s-label">Last activity fetch</div>
+                <div class="s-val">14m ago</div>
+              </div>
+              <div class="s-row">
+                <div class="s-label">What gets synced</div>
+                <div class="s-chevron">›</div>
+              </div>
+              <div class="s-row">
+                <div class="s-label">Reconnect Strava</div>
+                <div class="s-chevron">›</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-bar">
+          <div class="tab">⌂</div><div class="tab">◈</div><div class="tab">◷</div><div class="tab active">⚙</div>
+        </div>
+        <div class="home-ind"></div>
+      </div></div>
+      <p class="annot">
+        One new row in Voice & Audio: <em>"Generate text summaries for non-coached rides"</em>.
+        Default ON. Off saves LLM cost. Coached rides always get the rich narrative regardless.
+      </p>
+    </div>
+  </div>
+
+  <div class="legend">
+    <strong>Key visual decisions to validate:</strong>
+    <ul>
+      <li>Gold <code>🎙 Coached</code> pill sits beside the existing 4-state SyncStateBadge — orthogonal axes, not a 5th state.</li>
+      <li>Inline ▶ button on every Home row plays audio without navigating away. Tap the row body to navigate.</li>
+      <li>"Play debrief" on PostRideSummary is a primary CTA (gold pill, 56px tall) — audio is first-class.</li>
+      <li>SummaryText shimmer is the only loading affordance — the rest of the screen renders normally.</li>
+      <li>LLM is invisible: no "AI" framing, no model name, no robot icon. The text is the text.</li>
+      <li>MetricsBlock degrades gracefully — "Building your baseline · N/5" when there's less than 5 rides of history.</li>
+      <li>Sparklines are micro: 60×20px, last 5 efforts, gold line, latest dot, dashed PR baseline.</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>

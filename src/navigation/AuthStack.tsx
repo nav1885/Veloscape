@@ -16,6 +16,9 @@ import ConnectedScreen from '../components/ConnectedScreen';
 import { useAuthStore } from '../store/authStore';
 import { syncStarredSegments, SyncProgress } from '../services/segmentSync';
 import { API_URL, STRAVA_CLIENT_ID } from '../constants/config';
+import { sql } from 'drizzle-orm';
+import { db } from '../db/client';
+import { riders } from '../db/schema';
 
 const Stack = createStackNavigator<AuthStackParamList>();
 type AuthNav = StackNavigationProp<AuthStackParamList>;
@@ -116,6 +119,13 @@ function StravaConnectWrapper() {
   }, [navigation]);
 
   const handleConnect = useCallback(async () => {
+    if (!STRAVA_CLIENT_ID) {
+      setConnectState('error');
+      setErrorMessage(
+        'Strava client ID is missing in this build. Set EXPO_PUBLIC_STRAVA_CLIENT_ID in .env and rebuild.',
+      );
+      return;
+    }
     setConnectState('connecting');
     setErrorMessage(undefined);
 
@@ -211,6 +221,31 @@ function ConnectedWrapper() {
   }, []);
 
   const handleContinue = useCallback(() => {
+    // Upsert local riders row so FK constraints on rides + segment_efforts are satisfied
+    try {
+      const nowSec = Math.floor(Date.now() / 1000);
+      db.insert(riders)
+        .values({
+          id: riderId,
+          stravaAthleteId,
+          name: athleteName,
+          avatarUrl: avatarUrl ?? null,
+          createdAt: nowSec,
+          updatedAt: nowSec,
+        })
+        .onConflictDoUpdate({
+          target: riders.id,
+          set: {
+            stravaAthleteId: sql`excluded.strava_athlete_id`,
+            name: sql`excluded.name`,
+            avatarUrl: sql`excluded.avatar_url`,
+            updatedAt: sql`excluded.updated_at`,
+          },
+        })
+        .run();
+    } catch (err) {
+      console.warn('[Auth] failed to upsert local rider row:', err);
+    }
     setAuth(
       jwt,
       { id: riderId, stravaAthleteId, name: athleteName, avatarUrl },

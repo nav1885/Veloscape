@@ -46,6 +46,9 @@ function getRedirectUri(): string {
 // ─── Step 1: Open Strava browser and get an auth code ─────────────────────────
 
 export async function promptStravaAuth(): Promise<string> {
+  if (!STRAVA_CLIENT_ID) {
+    throw new Error('MISSING_STRAVA_CLIENT_ID');
+  }
   const redirectUri = getRedirectUri();
 
   // Strava requires comma-separated scopes, not space-separated.

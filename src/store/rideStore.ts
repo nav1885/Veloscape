@@ -35,6 +35,16 @@ export interface CompletedSegmentResult {
   cueTextPlayed?: string;
 }
 
+export type CueType = 'approach' | 'start' | 'split25' | 'split50' | 'split75' | 'end';
+
+export interface CueLogEntry {
+  segmentId: string;
+  cueType: CueType;
+  variant: 'aggressive' | 'moderate' | 'recovery' | null;
+  text: string;
+  firedAt: number; // ms
+}
+
 interface RideState {
   // Ride lifecycle
   isRideActive: boolean;
@@ -62,8 +72,13 @@ interface RideState {
   // Cache invalidation signal
   lastRideEndedAt: number | null; // timestamp ms; persists across resetRide
 
+  // Cue log (Phone-as-Coach): append-only log of every cue fired during the ride.
+  // Mirrors cue_log_entries SQLite table for fast in-ride reads; SQLite is source of truth.
+  cueLog: CueLogEntry[];
+
   // Actions
   startRide: (goalMode: 'pr' | 'training' | 'recovery', segmentIds: string[]) => void;
+  appendCueLog: (entry: CueLogEntry) => void;
   updatePosition: (pos: GpsPosition) => void;
   setSegmentState: (segmentId: string, state: SegmentState) => void;
   setActiveSegmentMetrics: (elapsed: number, progress: number, gap: number) => void;
@@ -89,6 +104,7 @@ export const useRideStore = create<RideState>()((set, get) => ({
   audioActive: false,
   coachedSegmentCount: 0,
   lastRideEndedAt: null,
+  cueLog: [],
 
   startRide: (goalMode, segmentIds) =>
     set({
@@ -102,7 +118,11 @@ export const useRideStore = create<RideState>()((set, get) => ({
       gpxTrackPoints: [],
       coachedSegmentCount: 0,
       nextSegmentId: segmentIds[0] ?? null,
+      cueLog: [],
     }),
+
+  appendCueLog: (entry) =>
+    set((state) => ({ cueLog: [...state.cueLog, entry] })),
 
   updatePosition: (pos) =>
     set((state) => {
@@ -200,5 +220,6 @@ export const useRideStore = create<RideState>()((set, get) => ({
       nextSegmentId: null,
       audioActive: false,
       coachedSegmentCount: 0,
+      cueLog: [],
     }),
 }));
