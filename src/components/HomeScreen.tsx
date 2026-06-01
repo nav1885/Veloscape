@@ -2,47 +2,134 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../constants/colors';
+import RideFeedRow from './RideFeedRow';
+import type { SyncState } from './SyncStateBadge';
+import type { AudioButtonState } from './InlineAudioButton';
+import { GoalMode, GOAL_LABELS } from '../types/goalMode';
+import type { LatLng } from '../utils/polyline';
 
-interface RecentRide {
+export interface FeedRide {
   id: string;
   title: string;
   date: string;
   distanceKm: number;
-  segmentCount: number;
-  prCount: number;
+  durationSec: number;
+  syncState: SyncState;
+  coachedBySherpaa: boolean;
+  hasDebriefCached: boolean;
+  routeCoords?: LatLng[];
 }
 
 interface Props {
   athleteName: string;
   starredSegmentCount: number;
-  lastSyncedAt: string; // human-readable e.g. "2h ago"
-  recentRides: RecentRide[];
-  canStartRideDirectly: boolean; // true when segments cached + cues fresh
+  lastSyncedAt: string;
+  feed: FeedRide[];
+  feedTotal: number;
+  feedLoading: boolean;
+  feedAudioState: (rideId: string) => AudioButtonState;
+  hasStravaToken: boolean;
+  canStartRideDirectly: boolean;
+  selectedMode: GoalMode;
+  cuesPreparing: boolean;
   isSyncing: boolean;
   isRefreshing: boolean;
   onRefresh: () => void;
-  onPlanRide: () => void;
+  onSelectMode: (mode: GoalMode) => void;
   onStartRide: () => void;
   onRideTap: (rideId: string) => void;
+  onAudioPress: (rideId: string) => void;
+  onLoadMore: () => void;
+  onConnectStrava: () => void;
 }
 
 export default function HomeScreen({
   athleteName,
   starredSegmentCount,
   lastSyncedAt,
-  recentRides,
+  feed,
+  feedTotal,
+  feedLoading,
+  feedAudioState,
+  hasStravaToken,
   canStartRideDirectly,
+  selectedMode,
+  cuesPreparing,
   isSyncing,
   isRefreshing,
   onRefresh,
-  onPlanRide,
+  onSelectMode,
   onStartRide,
   onRideTap,
+  onAudioPress,
+  onLoadMore,
+  onConnectStrava,
 }: Props) {
   const greeting = `Good ${getTimeOfDay()}, ${athleteName.split(' ')[0]}.`;
 
+  const renderFeedSection = () => {
+    if (feedLoading && feed.length === 0) {
+      // 3 shimmer ghost rows
+      return (
+        <>
+          {[0, 1, 2].map((i) => (
+            <ShimmerRow key={i} />
+          ))}
+        </>
+      );
+    }
+    if (feed.length === 0) {
+      if (!hasStravaToken) {
+        return (
+          <View style={styles.emptyBlock}>
+            <Text style={styles.emptyTitle}>Connect Strava to see your recent rides.</Text>
+            <TouchableOpacity style={styles.connectBtn} onPress={onConnectStrava} activeOpacity={0.8}>
+              <Text style={styles.connectBtnText}>Connect Strava →</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      }
+      return (
+        <View style={styles.emptyBlock}>
+          <Text style={styles.emptyTitle}>No rides in the last 30 days.</Text>
+          <Text style={styles.emptySub}>Your next ride will appear here automatically.</Text>
+        </View>
+      );
+    }
+    return (
+      <>
+        {feed.map((r) => (
+          <RideFeedRow
+            key={r.id}
+            rideId={r.id}
+            title={r.title}
+            date={r.date}
+            distanceKm={r.distanceKm}
+            durationSec={r.durationSec}
+            syncState={r.syncState}
+            coachedBySherpaa={r.coachedBySherpaa}
+            hasDebriefCached={r.hasDebriefCached}
+            routeCoords={r.routeCoords}
+            audioState={feedAudioState(r.id)}
+            onPress={() => onRideTap(r.id)}
+            onAudioPress={() => onAudioPress(r.id)}
+          />
+        ))}
+        {feed.length < feedTotal ? (
+          <TouchableOpacity style={styles.loadMore} onPress={onLoadMore} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Text style={styles.loadMoreText}>Load more</Text>
+          </TouchableOpacity>
+        ) : feed.length >= 10 ? (
+          <TouchableOpacity style={styles.loadMore} onPress={onLoadMore} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <Text style={styles.loadMoreText}>See full history →</Text>
+          </TouchableOpacity>
+        ) : null}
+      </>
+    );
+  };
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -56,86 +143,85 @@ export default function HomeScreen({
         }
       >
 
-        {/* Header */}
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>{greeting}</Text>
             <View style={styles.syncRow}>
-              {isSyncing && (
+              {(isSyncing || feedLoading) && (
                 <ActivityIndicator size="small" color={colors.gold} style={styles.syncSpinner} />
               )}
               <Text style={styles.syncStatus}>
-                {isSyncing
-                  ? 'Syncing segments from Strava...'
-                  : `${starredSegmentCount} starred segments · Last synced ${lastSyncedAt}`}
+                {feedLoading && feed.length === 0
+                  ? 'Loading your rides...'
+                  : isSyncing
+                    ? 'Syncing segments from Strava...'
+                    : `${starredSegmentCount} starred segments · Last synced ${lastSyncedAt}`}
               </Text>
             </View>
           </View>
-          {/* TODO: replace with actual profile image */}
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{athleteName[0]}</Text>
           </View>
         </View>
 
-        {/* Plan Ride card */}
-        <TouchableOpacity style={styles.planCard} onPress={onPlanRide} activeOpacity={0.8}>
-          <View style={styles.planCardLeft}>
-            <Text style={styles.planCardIcon}>🚴</Text>
-            <View>
-              <Text style={styles.planCardTitle}>Plan Ride</Text>
-              <Text style={styles.planCardSub}>
-                Set route, choose goal, generate cues
+        <Text style={styles.modeLabel}>Goal Mode</Text>
+        <View style={styles.modeChips} accessibilityRole="radiogroup">
+          {(['pr', 'training', 'recovery'] as GoalMode[]).map((mode) => (
+            <TouchableOpacity
+              key={mode}
+              style={[styles.goalChip, selectedMode === mode && styles.goalChipSelected]}
+              onPress={() => onSelectMode(mode)}
+              activeOpacity={0.8}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: selectedMode === mode }}
+              accessibilityLabel={`${GOAL_LABELS[mode]} mode`}
+            >
+              <Text style={[styles.goalChipText, selectedMode === mode && styles.goalChipTextSelected]}>
+                {GOAL_LABELS[mode]}
               </Text>
-            </View>
-          </View>
-          <Text style={styles.planCardChevron}>›</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <TouchableOpacity
+          style={[styles.startBtn, !canStartRideDirectly && styles.startBtnDisabled]}
+          onPress={onStartRide}
+          disabled={!canStartRideDirectly}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: !canStartRideDirectly }}
+          accessibilityLabel={`Start ride in ${GOAL_LABELS[selectedMode]} mode`}
+        >
+          <Text style={styles.startBtnText}>Start Ride</Text>
         </TouchableOpacity>
 
-        {/* Quick start if cues cached */}
-        {canStartRideDirectly && (
-          <TouchableOpacity style={styles.quickStartCard} onPress={onStartRide} activeOpacity={0.85}>
-            <Text style={styles.quickStartText}>▶  Start Ride Now</Text>
-            <Text style={styles.quickStartSub}>Using cached cues from last session</Text>
-          </TouchableOpacity>
-        )}
-
-        {/* Recent rides */}
-        <Text style={styles.sectionLabel}>Recent Rides</Text>
-
-        {recentRides.length === 0 ? (
-          <Text style={styles.emptyState}>
-            Your rides will appear here after your first Sherpaa session.
-          </Text>
-        ) : (
-          recentRides.map(ride => (
-            <TouchableOpacity
-              key={ride.id}
-              style={styles.rideCard}
-              onPress={() => onRideTap(ride.id)}
-              activeOpacity={0.75}
-            >
-              <View style={styles.rideCardTop}>
-                <Text style={styles.rideTitle}>{ride.title}</Text>
-                <Text style={styles.rideDate}>{ride.date}</Text>
-              </View>
-              <View style={styles.rideCardStats}>
-                <View style={styles.rideStat}>
-                  <Text style={styles.rideStatVal}>{ride.distanceKm} km</Text>
-                </View>
-                <View style={styles.rideStat}>
-                  <Text style={styles.rideStatVal}>{ride.segmentCount} segs</Text>
-                </View>
-                {ride.prCount > 0 && (
-                  <View style={styles.prTag}>
-                    <Text style={styles.prTagText}>🏆 {ride.prCount} PR</Text>
-                  </View>
-                )}
-              </View>
+        {!canStartRideDirectly ? (
+          <View style={styles.helperCard}>
+            <Text style={styles.helperText}>Star segments on Strava, then sync to start a coached ride.</Text>
+            <TouchableOpacity style={styles.refreshBtn} onPress={onRefresh} activeOpacity={0.8}>
+              <Text style={styles.refreshBtnText}>Refresh</Text>
             </TouchableOpacity>
-          ))
-        )}
+          </View>
+        ) : cuesPreparing ? (
+          <Text style={styles.coldNote}>
+            Coaching cues are still preparing — your ride starts now, cues fill in shortly.
+          </Text>
+        ) : null}
+
+        <Text style={styles.sectionLabel}>Recent Rides</Text>
+        {renderFeedSection()}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function ShimmerRow() {
+  return (
+    <View style={styles.shimmerCard}>
+      <View style={[styles.shimmerLine, { width: '70%', height: 16 }]} />
+      <View style={[styles.shimmerLine, { width: '90%', height: 14, marginTop: 8 }]} />
+      <View style={[styles.shimmerLine, { width: '40%', height: 12, marginTop: 8 }]} />
+    </View>
   );
 }
 
@@ -147,12 +233,9 @@ function getTimeOfDay(): string {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
+  container: { flex: 1, backgroundColor: colors.bg },
   scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 16 },
+  scrollContent: { paddingBottom: 24 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -161,153 +244,62 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     marginBottom: 20,
   },
-  greeting: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.textPrimary,
-    marginBottom: 4,
+  greeting: { fontSize: 20, fontWeight: '600', color: colors.textPrimary, marginBottom: 4 },
+  syncRow: { flexDirection: 'row', alignItems: 'center' },
+  syncSpinner: { marginRight: 6 },
+  syncStatus: { fontSize: 13, color: colors.textMuted },
+  avatar: { width: 36, height: 36, borderRadius: 999, backgroundColor: colors.gold, alignItems: 'center', justifyContent: 'center' },
+  avatarText: { fontSize: 14, fontWeight: '700', color: colors.textOnGold },
+  modeLabel: {
+    fontSize: 11, fontWeight: '600', color: colors.textDim, textTransform: 'uppercase',
+    letterSpacing: 1.2, paddingHorizontal: 20, paddingBottom: 10,
   },
-  syncRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  modeChips: { flexDirection: 'row', gap: 8, paddingHorizontal: 20, marginBottom: 16 },
+  goalChip: {
+    flex: 1, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border,
   },
-  syncSpinner: {
-    marginRight: 6,
+  goalChipSelected: { backgroundColor: colors.gold, borderColor: colors.gold },
+  goalChipText: { fontSize: 13, fontWeight: '500', color: colors.textSecondary },
+  goalChipTextSelected: { color: colors.textOnGold, fontWeight: '600' },
+  startBtn: {
+    marginHorizontal: 20, height: 54, borderRadius: 999, backgroundColor: colors.gold,
+    alignItems: 'center', justifyContent: 'center',
   },
-  syncStatus: {
-    fontSize: 13,
-    color: colors.textMuted,
+  startBtnDisabled: { opacity: 0.35 },
+  startBtnText: { fontSize: 17, fontWeight: '600', color: colors.textOnGold },
+  helperCard: {
+    marginHorizontal: 20, marginTop: 12, padding: 16, backgroundColor: colors.surface,
+    borderWidth: 1, borderColor: colors.border, borderRadius: 12,
   },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 999,
-    backgroundColor: colors.gold,
-    alignItems: 'center',
-    justifyContent: 'center',
+  helperText: { fontSize: 13, color: colors.textSecondary, lineHeight: 18 },
+  refreshBtn: {
+    marginTop: 14, alignSelf: 'flex-start', height: 40, paddingHorizontal: 18, borderRadius: 999,
+    borderWidth: 1, borderColor: colors.borderStrong, alignItems: 'center', justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.textOnGold,
-  },
-  planCard: {
-    marginHorizontal: 20,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  planCardLeft: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  planCardIcon: { fontSize: 24 },
-  planCardTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  planCardSub: {
-    fontSize: 13,
-    color: colors.textMuted,
-    lineHeight: 18,
-  },
-  planCardChevron: {
-    fontSize: 22,
-    color: colors.gold,
-  },
-  quickStartCard: {
-    marginHorizontal: 20,
-    backgroundColor: colors.goldDim,
-    borderWidth: 1,
-    borderColor: colors.goldBorder,
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  quickStartText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.gold,
-    marginBottom: 3,
-  },
-  quickStartSub: {
-    fontSize: 12,
-    color: colors.textMuted,
+  refreshBtnText: { fontSize: 14, fontWeight: '600', color: colors.gold },
+  coldNote: {
+    marginHorizontal: 24, marginTop: 10, fontSize: 12, fontWeight: '500',
+    color: colors.textMuted, textAlign: 'center', lineHeight: 17,
   },
   sectionLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.textDim,
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    paddingBottom: 12,
+    fontSize: 11, fontWeight: '600', color: colors.textDim, textTransform: 'uppercase',
+    letterSpacing: 1.2, paddingHorizontal: 20, paddingTop: 24, paddingBottom: 12,
   },
-  emptyState: {
-    fontSize: 14,
-    color: colors.textDim,
-    textAlign: 'center',
-    paddingHorizontal: 40,
-    lineHeight: 22,
+  emptyBlock: { paddingVertical: 40, paddingHorizontal: 32, alignItems: 'center' },
+  emptyTitle: { fontSize: 16, color: colors.textSecondary, fontWeight: '500', textAlign: 'center', marginBottom: 8 },
+  emptySub: { fontSize: 13, color: colors.textMuted, textAlign: 'center' },
+  connectBtn: {
+    marginTop: 16, height: 44, paddingHorizontal: 24, borderRadius: 999,
+    borderWidth: 1, borderColor: colors.borderStrong, backgroundColor: colors.surface,
+    alignItems: 'center', justifyContent: 'center',
   },
-  rideCard: {
-    marginHorizontal: 20,
-    marginBottom: 10,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    padding: 14,
+  connectBtnText: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
+  loadMore: { alignItems: 'center', paddingVertical: 14 },
+  loadMoreText: { fontSize: 13, fontWeight: '600', color: colors.gold },
+  shimmerCard: {
+    marginHorizontal: 20, marginBottom: 10, padding: 14,
+    backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: 12,
   },
-  rideCardTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-  },
-  rideTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  rideDate: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: colors.textDim,
-  },
-  rideCardStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  rideStat: {},
-  rideStatVal: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.textPrimary,
-  },
-  prTag: {
-    backgroundColor: colors.goldDim,
-    borderWidth: 1,
-    borderColor: colors.goldBorder,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-  },
-  prTagText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.gold,
-  },
+  shimmerLine: { borderRadius: 4, backgroundColor: colors.surfaceAlt },
 });

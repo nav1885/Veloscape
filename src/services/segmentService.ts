@@ -1,6 +1,6 @@
 /**
  * Reads starred segments from SQLite and enriches them with effort stats.
- * Used by the RouteSetup screen and anywhere segments need to be listed.
+ * Used by Home / Quick-Start and anywhere segments need to be listed.
  */
 
 import { desc, eq, min, count } from 'drizzle-orm';

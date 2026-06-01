@@ -1,5 +1,5 @@
 import { NavigatorScreenParams } from '@react-navigation/native';
-import { GoalMode } from '../components/RouteSetupScreen';
+import { GoalMode } from '../types/goalMode';
 
 // ─── Auth Stack ───────────────────────────────────────────────────────────────
 
@@ -22,9 +22,6 @@ export type AuthStackParamList = {
 // ─── Ride Stack (modal on top of Main tabs) ───────────────────────────────────
 
 export type RideStackParamList = {
-  RouteSetup: undefined;
-  CueGeneration: { segmentIds: string[]; goalMode: GoalMode };
-  PreRideBrief: { segmentIds: string[]; goalMode: GoalMode };
   InRide: { segmentIds: string[]; goalMode: GoalMode };
   SegmentResult: {
     segmentId: string;

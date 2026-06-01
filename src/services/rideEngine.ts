@@ -13,6 +13,9 @@ import { Segment } from '../store/segmentStore';
 import { getCueForSegment } from './cueService';
 import { speak, stop as stopTTS } from './ttsService';
 import { haversineMetres, decodePolyline, LatLng } from '../utils/polyline';
+import { spokenDistanceMeters } from '../utils/units';
+import { GoalMode } from '../types/goalMode';
+import { CueType } from '../store/rideStore';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -27,8 +30,6 @@ interface SegmentTracker {
   enteredAt: number | null; // timestamp ms
   checkpointsFired: Set<number>; // 25, 50, 75
 }
-
-type GoalMode = 'pr' | 'training' | 'recovery';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -241,10 +242,21 @@ function enterSegment(tracker: SegmentTracker): void {
       : state.currentSegment,
   }));
 
-  // Start cue
+  // Start cue (suppressed in Recovery — see shouldFireCue). Flag flips regardless
+  // so we don't re-evaluate every GPS tick.
   if (!tracker.startCueFired) {
     tracker.startCueFired = true;
-    speak(`${tracker.segment.name}. Go.`);
+    if (shouldFireCue(_goalMode, 'start')) {
+      const text = `${tracker.segment.name}. Go.`;
+      speak(text);
+      store.appendCueLog({
+        segmentId: tracker.segment.id,
+        cueType: 'start',
+        variant: null,
+        text,
+        firedAt: Date.now(),
+      });
+    }
   }
 }
 
@@ -262,13 +274,22 @@ function exitSegment(
   const mins = Math.floor(timeSec / 60);
   const secs = timeSec % 60;
   const timeStr = mins > 0 ? `${mins}:${secs.toString().padStart(2, '0')}` : `${secs} seconds`;
+  let endText: string;
   if (isNewPR && bestTime) {
-    speak(`${timeStr}. New P R. ${Math.abs(gapToPreSeconds)} seconds faster.`);
+    endText = `${timeStr}. New P R. ${Math.abs(gapToPreSeconds)} seconds faster.`;
   } else if (bestTime) {
-    speak(`${timeStr}. ${Math.abs(gapToPreSeconds)} seconds off P R.`);
+    endText = `${timeStr}. ${Math.abs(gapToPreSeconds)} seconds off P R.`;
   } else {
-    speak(`${timeStr}. First effort recorded.`);
+    endText = `${timeStr}. First effort recorded.`;
   }
+  speak(endText);
+  useRideStore.getState().appendCueLog({
+    segmentId: tracker.segment.id,
+    cueType: 'end',
+    variant: null,
+    text: endText,
+    firedAt: Date.now(),
+  });
 
   // Update store
   const store = useRideStore.getState();
@@ -286,29 +307,51 @@ function exitSegment(
   _activeTracker = null;
 }
 
+// ─── Mode-aware cue selection (Quick-Start Modes) ──────────────────────────────
+
+/** Which LLM cue variant a mode speaks on segment approach. */
+export function variantForMode(goalMode: GoalMode): 'aggressive' | 'moderate' | 'recovery' {
+  return goalMode === 'pr' ? 'aggressive' : goalMode === 'recovery' ? 'recovery' : 'moderate';
+}
+
+/**
+ * Whether a cue type fires for a mode. Recovery is intentionally quiet — it
+ * suppresses the hard-effort push cues (start + all splits); approach + end
+ * always fire so the rider still hears a (de-escalating) voice.
+ */
+export function shouldFireCue(goalMode: GoalMode, cueType: CueType): boolean {
+  if (goalMode === 'recovery' && (cueType === 'start' || cueType.startsWith('split'))) return false;
+  return true;
+}
+
 // ─── Cue firing ──────────────────────────────────────────────────────────────
 
 function fireApproachCue(tracker: SegmentTracker): void {
   const seg = tracker.segment;
   const cue = getCueForSegment(seg.id, _goalMode);
+  const store = useRideStore.getState();
+  let cueText: string;
+  let variant: 'aggressive' | 'moderate' | 'recovery' | null = null;
 
   if (cue) {
-    // Pick variant: for now, use moderate as default
-    const cueText = cue.moderate;
+    variant = variantForMode(_goalMode);
+    cueText = cue[variant];
     speak(cueText);
-
-    // Record in store
-    const store = useRideStore.getState();
     store.setSegmentState(seg.id, 'approaching');
     useRideStore.setState({ nextSegmentId: seg.id });
   } else {
-    // Fallback: generic approach cue
-    const distStr = (seg.distanceM / 1000).toFixed(1);
-    const prStr = seg.bestTimeSec
-      ? `P R is ${formatTimeSec(seg.bestTimeSec)}.`
-      : '';
-    speak(`${seg.name} in 500 meters. ${distStr} K. ${prStr}`);
+    const prStr = seg.bestTimeSec ? `P R is ${formatTimeSec(seg.bestTimeSec)}.` : '';
+    cueText = `${seg.name} ahead. ${spokenDistanceMeters(seg.distanceM)}. ${prStr}`;
+    speak(cueText);
   }
+
+  store.appendCueLog({
+    segmentId: seg.id,
+    cueType: 'approach',
+    variant,
+    text: cueText,
+    firedAt: Date.now(),
+  });
 }
 
 function fireSplitCue(
@@ -318,14 +361,25 @@ function fireSplitCue(
   gapSec: number,
 ): void {
   if (tracker.segment.bestTimeSec == null) return; // no PR to compare against
+  if (!shouldFireCue(_goalMode, 'split50')) return; // Recovery: suppress all split cues
 
   const label = pct === 50 ? 'Halfway' : `${pct} percent`;
+  let text: string | null = null;
   if (gapSec <= -3) {
-    speak(`${label}. ${Math.abs(gapSec)} seconds up. Hold.`);
+    text = `${label}. ${Math.abs(gapSec)} seconds up. Hold.`;
   } else if (gapSec >= 3) {
-    speak(`${label}. ${gapSec} seconds back. Push.`);
+    text = `${label}. ${gapSec} seconds back. Push.`;
   }
-  // Within ±3s: say nothing (too close to call with GPS noise)
+  if (!text) return; // within ±3s: stay silent (GPS noise)
+  speak(text);
+  const cueType = pct === 25 ? 'split25' : pct === 50 ? 'split50' : 'split75';
+  useRideStore.getState().appendCueLog({
+    segmentId: tracker.segment.id,
+    cueType,
+    variant: null,
+    text,
+    firedAt: Date.now(),
+  });
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

@@ -4,30 +4,45 @@
  * data hookups in the corresponding phase (1–5).
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { BackHandler } from 'react-native';
+import { useNavigation, useRoute, useFocusEffect, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { useSegmentStore } from '../store/segmentStore';
 import { useAuthStore } from '../store/authStore';
 import { useRideStore } from '../store/rideStore';
 import { loadStarredSegments } from '../services/segmentService';
 import { TTL } from '../constants/ttl';
-import { GoalMode } from '../components/RouteSetupScreen';
-import { StravaActivitySummary } from '../services/stravaApi';
-import { matchSegmentsToRoute, MatchedSegment } from '../services/routeMatching';
-import { decodePolyline, LatLng, haversineMetres } from '../utils/polyline';
-import { generateCuesForSegments } from '../services/cueGeneration';
-import { saveCues, getExistingCueSegmentIds } from '../services/cueService';
-import { getCachedActivities, refreshActivities } from '../services/activityService';
-import { syncSegmentDetails } from '../services/segmentSync';
+import { GoalMode } from '../types/goalMode';
+import { LatLng, haversineMetres, decodePolyline } from '../utils/polyline';
+import { getCachedActivities, getActivitySummaryPolyline } from '../services/activityService';
+import { getActivityDetail } from '../services/stravaApi';
+import { upsertCachedActivityFromDetail } from '../services/homeIngestor';
 import { startRideEngine, stopRideEngine, getRideStartTime } from '../services/rideEngine';
 import { saveRide, generateDebrief } from '../services/rideService';
+import {
+  getOrGenerateSummary,
+  computeMetricsForRide,
+  loadSegmentEffortTrend,
+  BASELINE_TARGET,
+} from '../services/rideSummaryService';
+import type { SummaryTextState } from '../components/SummaryText';
+import type { AudioButtonState } from '../components/InlineAudioButton';
+import { stop as stopTTS } from '../services/ttsService';
 import { loadRideDetail } from '../services/rideHistoryService';
 import { speak } from '../services/ttsService';
-import { CueStatus } from '../components/CueGenerationScreen';
+import {
+  startReconciliation,
+  forceReconcileOnce,
+  remapRideToActivity,
+  unmapRide,
+  type ReconcilerHandle,
+} from '../services/stravaReconciler';
+import WrongActivityChooser from '../components/WrongActivityChooser';
+import type { SyncState } from '../components/SyncStateBadge';
+import { db } from '../db/client';
+import { rides } from '../db/schema';
+import { eq } from 'drizzle-orm';
 
-import RouteSetupScreen from '../components/RouteSetupScreen';
-import CueGenerationScreen from '../components/CueGenerationScreen';
-import PreRideBriefScreen from '../components/PreRideBriefScreen';
 import InRideScreen from '../components/InRideScreen';
 import SegmentResultScreen from '../components/SegmentResultScreen';
 import PostRideSummaryScreen from '../components/PostRideSummaryScreen';
@@ -37,305 +52,14 @@ import { RideStackParamList } from '../navigation/types';
 
 type RideNav = StackNavigationProp<RideStackParamList>;
 
-// ─── RouteSetup ───────────────────────────────────────────────────────────────
-
-export function RouteSetupScreenWrapper() {
-  const navigation = useNavigation<RideNav>();
-  const [goalMode, setGoalMode] = useState<GoalMode>('training');
-
-  // Segment store
-  const starredSegments = useSegmentStore((s) => s.starredSegments);
-  const setStarredSegments = useSegmentStore((s) => s.setStarredSegments);
-
-  // Auth
-  const stravaAccessToken = useAuthStore((s) => s.stravaAccessToken);
-  const lastActivityFetchAt = useAuthStore((s) => s.lastActivityFetchAt);
-  const setLastActivityFetchAt = useAuthStore((s) => s.setLastActivityFetchAt);
-  const lastRideEndedAt = useRideStore((s) => s.lastRideEndedAt);
-
-  // Activity picker state — show cached immediately
-  const [recentActivities, setRecentActivities] = useState<StravaActivitySummary[]>(
-    () => getCachedActivities(),
-  );
-  const [isLoadingActivities, setIsLoadingActivities] = useState(false);
-  const [isRefreshingActivities, setIsRefreshingActivities] = useState(false);
-  const [previewedActivity, setPreviewedActivity] = useState<StravaActivitySummary | null>(null);
-  const [confirmedActivityId, setConfirmedActivityId] = useState<number | null>(null);
-
-  // Route state
-  const [routePolyline, setRoutePolyline] = useState<LatLng[] | null>(null);
-  const [matchedSegments, setMatchedSegments] = useState<MatchedSegment[]>([]);
-
-  // Load segments from SQLite if store is empty (fallback — normally hydrated in App.tsx)
-  useEffect(() => {
-    if (starredSegments.length > 0) return;
-    loadStarredSegments()
-      .then(segs => setStarredSegments(segs))
-      .catch(() => {});
-  }, []);
-
-  // Staleness-gated activity refresh
-  useEffect(() => {
-    console.log('[RouteSetup] activity effect — token:', stravaAccessToken ? 'yes' : 'null',
-      'lastFetch:', lastActivityFetchAt, 'cached:', recentActivities.length);
-    if (!stravaAccessToken) return;
-
-    const nowSec = Math.floor(Date.now() / 1000);
-    const isStale = !lastActivityFetchAt || (nowSec - lastActivityFetchAt) > TTL.ACTIVITY_SEC;
-    const justRode = lastRideEndedAt && (!lastActivityFetchAt || lastRideEndedAt / 1000 > lastActivityFetchAt);
-
-    if (!isStale && !justRode && recentActivities.length > 0) {
-      console.log('[RouteSetup] cache fresh, skipping');
-      return;
-    }
-
-    console.log('[RouteSetup] fetching activities...');
-    if (recentActivities.length === 0) setIsLoadingActivities(true);
-    refreshActivities(stravaAccessToken)
-      .then(activities => {
-        console.log('[RouteSetup] got', activities.length, 'activities');
-        setRecentActivities(activities);
-        setLastActivityFetchAt(Math.floor(Date.now() / 1000));
-      })
-      .catch(err => console.error('[RouteSetup] activity refresh failed:', err))
-      .finally(() => setIsLoadingActivities(false));
-  }, [stravaAccessToken]);
-
-  // Compute staleness label for UI
-  const activitiesStalenessLabel = useMemo(() => {
-    if (!lastActivityFetchAt) return null;
-    const ageSec = Math.floor(Date.now() / 1000) - lastActivityFetchAt;
-    if (ageSec < 30 * 60) return null; // Hide if < 30 min old
-    if (ageSec < 3600) return `Updated ${Math.floor(ageSec / 60)}m ago`;
-    if (ageSec < 86400) return `Updated ${Math.floor(ageSec / 3600)}h ago`;
-    return `Updated ${Math.floor(ageSec / 86400)}d ago`;
-  }, [lastActivityFetchAt]);
-
-  // Pull-to-refresh handler — bypasses TTL
-  function handleRefreshActivities() {
-    if (!stravaAccessToken) return;
-    setIsRefreshingActivities(true);
-    refreshActivities(stravaAccessToken)
-      .then(activities => {
-        setRecentActivities(activities);
-        setLastActivityFetchAt(Math.floor(Date.now() / 1000));
-      })
-      .catch(err => console.error('[RouteSetup] manual refresh failed:', err))
-      .finally(() => setIsRefreshingActivities(false));
-  }
-
-  function handleActivityPreview(activity: StravaActivitySummary) {
-    setPreviewedActivity(activity);
-    const decoded = decodePolyline(activity.map.summary_polyline);
-    setRoutePolyline(decoded);
-    const matched = matchSegmentsToRoute(activity.map.summary_polyline, starredSegments);
-    setMatchedSegments(matched);
-
-    // Lazy-fetch polylines for matched segments that don't have them yet
-    if (stravaAccessToken) {
-      const needPolyline = matched
-        .filter(ms => !ms.segment.polyline)
-        .map(ms => Number(ms.segment.stravaSegmentId));
-      if (needPolyline.length > 0) {
-        syncSegmentDetails(stravaAccessToken, needPolyline).then(() => {
-          // Reload segments from DB to pick up new polylines
-          loadStarredSegments().then(segs => setStarredSegments(segs));
-        });
-      }
-    }
-  }
-
-  function handleConfirmActivity() {
-    if (!previewedActivity) return;
-    setConfirmedActivityId(previewedActivity.id);
-    setPreviewedActivity(null);
-  }
-
-  function handleClearPreview() {
-    setPreviewedActivity(null);
-    setRoutePolyline(null);
-    setMatchedSegments([]);
-  }
-
-  function handleClearActivity() {
-    setConfirmedActivityId(null);
-    setPreviewedActivity(null);
-    setRoutePolyline(null);
-    setMatchedSegments([]);
-  }
-
-  function handleGenerateCues() {
-    // If no activity selected (Skip mode), use all starred segments
-    const segmentIds = matchedSegments.length > 0
-      ? matchedSegments.map(ms => ms.segment.id)
-      : starredSegments.map(s => s.id);
-    navigation.navigate('CueGeneration', { segmentIds, goalMode });
-  }
-
-  return (
-    <RouteSetupScreen
-      routePolyline={routePolyline}
-      matchedSegments={matchedSegments}
-      recentActivities={recentActivities}
-      isLoadingActivities={isLoadingActivities}
-      previewedActivity={previewedActivity}
-      confirmedActivityId={confirmedActivityId}
-      onActivityPreview={handleActivityPreview}
-      onConfirmActivity={handleConfirmActivity}
-      onClearActivity={handleClearActivity}
-      isRefreshingActivities={isRefreshingActivities}
-      onRefreshActivities={handleRefreshActivities}
-      activitiesStalenessLabel={activitiesStalenessLabel}
-      selectedGoalMode={goalMode}
-      onGoalModeSelect={setGoalMode}
-      onGenerateCues={handleGenerateCues}
-      onBack={() => navigation.goBack()}
-    />
-  );
-}
-
-// ─── CueGeneration ────────────────────────────────────────────────────────────
-
-export function CueGenerationScreenWrapper() {
-  const navigation = useNavigation<RideNav>();
-  const route = useRoute<RouteProp<RideStackParamList, 'CueGeneration'>>();
-  const { segmentIds, goalMode } = route.params;
-  const starredSegments = useSegmentStore((s) => s.starredSegments);
-  const jwt = useAuthStore((s) => s.jwt);
-
-  const segmentsForRide = segmentIds
-    .map(id => starredSegments.find(s => s.id === id))
-    .filter((s): s is NonNullable<typeof s> => s !== undefined);
-
-  // Check which segments already have fresh cached cues
-  const cachedIds = getExistingCueSegmentIds(segmentIds, goalMode);
-  const segmentsToGenerate = segmentsForRide.filter(s => !cachedIds.has(s.id));
-
-  const [statuses, setStatuses] = useState<Record<string, CueStatus>>(() =>
-    Object.fromEntries(segmentsForRide.map(s => [
-      s.id,
-      cachedIds.has(s.id) ? 'done' as CueStatus : 'pending' as CueStatus,
-    ])),
-  );
-  const hasStartedRef = useRef(false);
-
-  useEffect(() => {
-    if (hasStartedRef.current) return;
-    hasStartedRef.current = true;
-
-    // All cues already cached — skip straight to PreRideBrief
-    if (segmentsToGenerate.length === 0) {
-      setTimeout(() => {
-        navigation.navigate('PreRideBrief', { segmentIds, goalMode });
-      }, 300);
-      return;
-    }
-
-    if (!jwt) return;
-
-    setStatuses(prev => {
-      const next: Record<string, CueStatus> = { ...prev };
-      for (const s of segmentsToGenerate) next[s.id] = 'active';
-      return next;
-    });
-
-    (async () => {
-      try {
-        const cues = await generateCuesForSegments(segmentsToGenerate, goalMode, jwt);
-
-        saveCues(
-          cues.map(c => ({
-            segmentId: segmentsToGenerate[c.segmentIndex].id,
-            goalMode,
-            aggressive: c.aggressive,
-            moderate: c.moderate,
-            recovery: c.recovery,
-          })),
-        );
-
-        const done: Record<string, CueStatus> = {};
-        for (const s of segmentsForRide) done[s.id] = 'done';
-        setStatuses(done);
-
-        setTimeout(() => {
-          navigation.navigate('PreRideBrief', { segmentIds, goalMode });
-        }, 450);
-      } catch (err) {
-        console.error('[cueGen] failed', err);
-        navigation.navigate('PreRideBrief', { segmentIds, goalMode });
-      }
-    })();
-  }, [jwt, segmentsToGenerate.length, goalMode, segmentIds, navigation]);
-
-  const progressSegments = segmentsForRide.map(s => ({
-    id: s.id,
-    name: s.name,
-    status: statuses[s.id] ?? 'pending',
-  }));
-
-  const uncachedCount = segmentsToGenerate.length;
-
-  return (
-    <CueGenerationScreen
-      segments={progressSegments}
-      estimatedSecondsRemaining={uncachedCount * 4}
-      onSkip={() => navigation.navigate('PreRideBrief', { segmentIds, goalMode })}
-    />
-  );
-}
-
-// ─── PreRideBrief ─────────────────────────────────────────────────────────────
-
-export function PreRideBriefScreenWrapper() {
-  const navigation = useNavigation<RideNav>();
-  const route = useRoute<RouteProp<RideStackParamList, 'PreRideBrief'>>();
-  const { segmentIds, goalMode } = route.params;
-  const starredSegments = useSegmentStore((s) => s.starredSegments);
-
-  const segments = segmentIds.map(id => {
-    const seg = starredSegments.find(s => s.id === id);
-    const hasHistory = (seg?.effortCount ?? 0) > 0;
-    return {
-      id,
-      name: seg?.name ?? id,
-      distanceKm: seg ? Math.round((seg.distanceM / 1000) * 10) / 10 : 0,
-      cuesReady: hasHistory ? 3 : 0,
-      bestTimeSec: seg?.bestTimeSec ?? undefined,
-      isPRTarget: hasHistory,
-      hasHistory,
-    };
-  });
-
-  const prTargetCount = segments.filter(s => s.isPRTarget).length;
-  const routeKm = Math.round(segments.reduce((sum, s) => sum + s.distanceKm, 0) * 10) / 10;
-
-  const prNames = segments.filter(s => s.isPRTarget).map(s => s.name);
-  const spokenBriefText = prTargetCount > 0
-    ? `${segments.length} segment${segments.length !== 1 ? 's' : ''} ahead. ${prNames.join(' and ')} ${prTargetCount === 1 ? 'is your PR target' : 'are your PR targets'} today.`
-    : `${segments.length} segment${segments.length !== 1 ? 's' : ''} on your route. No PR targets — ride at your ${goalMode} pace.`;
-
-  return (
-    <PreRideBriefScreen
-      goalMode={goalMode}
-      segmentCount={segments.length}
-      prTargetCount={prTargetCount}
-      routeKm={routeKm}
-      spokenBriefText={spokenBriefText}
-      isAudioPlaying={false}
-      segments={segments}
-      onStartRide={() => navigation.navigate('InRide', { segmentIds, goalMode })}
-      onChangeGoalMode={() => navigation.goBack()}
-      onBack={() => navigation.goBack()}
-    />
-  );
-}
-
 // ─── InRide ───────────────────────────────────────────────────────────────────
 
 export function InRideScreenWrapper() {
   const navigation = useNavigation<RideNav>();
   const route = useRoute<RouteProp<RideStackParamList, 'InRide'>>();
-  const { segmentIds, goalMode } = route.params;
+  // route.params may be absent if InRide is ever instantiated as the stack's
+  // base route (e.g. under a PostRideSummary replay) — guard against that.
+  const { segmentIds, goalMode } = route.params ?? ({} as Partial<{ segmentIds: string[]; goalMode: GoalMode }>);
 
   const currentPosition = useRideStore((s) => s.currentPosition);
   const gpsLocked = useRideStore((s) => s.gpsLocked);
@@ -350,7 +74,7 @@ export function InRideScreenWrapper() {
 
   // Start ride engine on mount
   useEffect(() => {
-    if (engineStartedRef.current) return;
+    if (engineStartedRef.current || !segmentIds?.length || !goalMode) return;
     engineStartedRef.current = true;
 
     console.log('[InRide] starting engine with', segmentIds.length, 'segments');
@@ -395,6 +119,17 @@ export function InRideScreenWrapper() {
     navigation.navigate('PostRideSummary', { rideId });
   }
 
+  // InRide is the Ride stack's base route, so it can mount under a
+  // PostRideSummary replay. If it's ever focused without params (e.g. user backs
+  // out of a replayed summary), bounce to Home instead of showing a blank screen.
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!segmentIds?.length) navigation.getParent()?.navigate('Main', { screen: 'Home' });
+    }, [segmentIds, navigation]),
+  );
+
+  if (!segmentIds?.length || !goalMode) return null;
+
   return (
     <InRideScreen
       elapsedTime={elapsedTime}
@@ -402,6 +137,7 @@ export function InRideScreenWrapper() {
       distanceKm={distanceKm}
       gpsLocked={gpsLocked}
       audioActive={audioActive}
+      goalMode={goalMode}
       nextSegment={nextSegment}
       onEndRide={handleEndRide}
     />
@@ -427,24 +163,55 @@ export function SegmentResultScreenWrapper() {
 
 // ─── PostRideSummary ──────────────────────────────────────────────────────────
 
+/**
+ * Locate a segment's slice of the ride track by nearest-point matching its
+ * start/end coords (the effort row has no enter/exit timestamp). Returns the
+ * sub-array of track points between those two indices, or undefined.
+ */
+function sliceTrackBySegment(
+  track: LatLng[],
+  start: LatLng | null,
+  end: LatLng | null,
+): LatLng[] | undefined {
+  if (!track || track.length < 2 || !start || !end) return undefined;
+  let i0 = 0, i1 = 0, d0 = Infinity, d1 = Infinity;
+  track.forEach((p, i) => {
+    const ds = haversineMetres(p, start);
+    if (ds < d0) { d0 = ds; i0 = i; }
+    const de = haversineMetres(p, end);
+    if (de < d1) { d1 = de; i1 = i; }
+  });
+  const lo = Math.min(i0, i1);
+  const hi = Math.max(i0, i1);
+  if (hi - lo < 1) return undefined;
+  return track.slice(lo, hi + 1);
+}
+
 export function PostRideSummaryScreenWrapper() {
   const navigation = useNavigation<RideNav>();
   const route = useRoute<RouteProp<RideStackParamList, 'PostRideSummary'>>();
   const rider = useAuthStore((s) => s.rider);
+  const stravaAccessToken = useAuthStore((s) => s.stravaAccessToken);
   const completedSegments = useRideStore((s) => s.completedSegments);
   const rideStartedAt = useRideStore((s) => s.rideStartedAt);
   const distanceKm = useRideStore((s) => s.distanceKm);
   const goalMode = useRideStore((s) => s.goalMode);
   const routeSegmentIds = useRideStore((s) => s.routeSegmentIds);
   const gpxTrackPoints = useRideStore((s) => s.gpxTrackPoints);
+  const cueLog = useRideStore((s) => s.cueLog);
   const starredSegments = useSegmentStore((s) => s.starredSegments);
 
-  // History mode: ride was navigated to from History list — load from SQLite.
-  // Detected when rideStore is empty (no live ride data) but a rideId was passed.
+  const routeRideId = route.params.rideId;
+
+  // History mode: navigated from History list — load from SQLite.
   const isHistoryMode = completedSegments.length === 0 && !rideStartedAt;
-  const persisted = useMemo(
-    () => (isHistoryMode ? loadRideDetail(route.params.rideId) : null),
-    [isHistoryMode, route.params.rideId],
+  const [persisted, setPersisted] = useState(() =>
+    isHistoryMode ? loadRideDetail(routeRideId) : null,
+  );
+
+  // Saved ride id (live mode generates it on save; history mode reuses route param)
+  const [savedRideId, setSavedRideId] = useState<string | null>(
+    isHistoryMode ? routeRideId : null,
   );
 
   const liveEndedAt = useRideStore((s) => s.lastRideEndedAt);
@@ -461,13 +228,68 @@ export function PostRideSummaryScreenWrapper() {
     ? (persisted ? persisted.ride.distanceM / 1000 : 0)
     : distanceKm;
 
-  // Save ride to DB on mount (once) — skip in history mode (already persisted)
+  // Full ride GPS track for the map.
+  //  • live → phone-recorded points from the store
+  //  • history, phone-recorded → persisted gpxTrack JSON
+  //  • history, Strava-sourced (gpxTrack null) → decode the cached Strava
+  //    summary polyline keyed by the ride's stravaActivityId
+  const rideTrack = useMemo<LatLng[]>(() => {
+    if (!isHistoryMode) {
+      return (gpxTrackPoints ?? []).map(p => ({ lat: p.lat, lng: p.lng }));
+    }
+    const raw = persisted?.ride.gpxTrack;
+    if (raw) {
+      try {
+        const arr = JSON.parse(raw) as Array<{ lat: number; lng: number }>;
+        if (arr.length >= 2) return arr.map(p => ({ lat: p.lat, lng: p.lng }));
+      } catch {
+        // fall through to the Strava polyline fallback
+      }
+    }
+    const sid = persisted?.ride.stravaActivityId;
+    if (sid) {
+      const poly = getActivitySummaryPolyline(Number(sid));
+      if (poly) return decodePolyline(poly);
+    }
+    return [];
+  }, [isHistoryMode, persisted, gpxTrackPoints]);
+
+  // If a past Strava ride has no cached route, fetch its detail once on demand,
+  // cache the summary polyline, and draw it. (The ingestor only backfills detail
+  // for a capped number of rides per run, so most older rides aren't cached.)
+  const [fetchedTrack, setFetchedTrack] = useState<LatLng[] | null>(null);
+  const effectiveTrack = useMemo<LatLng[]>(
+    () => (fetchedTrack && fetchedTrack.length >= 2 ? fetchedTrack : rideTrack),
+    [fetchedTrack, rideTrack],
+  );
+  const trackFetchRef = useRef(false);
+  useEffect(() => {
+    if (!isHistoryMode || trackFetchRef.current || rideTrack.length >= 2) return;
+    const sid = persisted?.ride.stravaActivityId;
+    if (!sid || !stravaAccessToken) return;
+    trackFetchRef.current = true;
+    (async () => {
+      try {
+        const detail = await getActivityDetail(Number(sid), stravaAccessToken);
+        const poly = detail.map?.summary_polyline;
+        if (poly) {
+          upsertCachedActivityFromDetail(detail);
+          setFetchedTrack(decodePolyline(poly));
+        }
+      } catch (err) {
+        console.warn('[PostRide] on-demand route fetch failed:', err);
+      }
+    })();
+  }, [isHistoryMode, rideTrack, persisted, stravaAccessToken]);
+
+
+  // Save ride on mount (live only) — captures cue log too
   const savedRef = useRef(false);
   useEffect(() => {
     if (isHistoryMode || savedRef.current || !rider) return;
     savedRef.current = true;
     try {
-      saveRide({
+      const newId = saveRide({
         riderId: rider.id,
         goalMode,
         startedAt: rideStartedAt ?? Date.now(),
@@ -476,12 +298,101 @@ export function PostRideSummaryScreenWrapper() {
         elevationM: 0,
         completedSegments,
         gpxTrackPoints,
+        cueLog,
       });
-      console.log('[PostRide] ride saved to DB');
+      setSavedRideId(newId);
+      console.log('[PostRide] ride saved to DB:', newId);
     } catch (err) {
       console.error('[PostRide] save failed:', err);
     }
   }, []);
+
+  // Local sync state — drives badge + affordances. Re-read from DB on changes.
+  const [dataSource, setDataSource] = useState<'provisional' | 'strava'>(
+    isHistoryMode ? (persisted?.ride.dataSource ?? 'provisional') : 'provisional',
+  );
+  const [importedFromStrava] = useState<boolean>(
+    isHistoryMode ? (persisted?.ride.importedFromStrava ?? false) : false,
+  );
+  const [reconcilerActive, setReconcilerActive] = useState(false);
+  const [reconcilerExpired, setReconcilerExpired] = useState(false);
+
+  // Re-read ride from DB after a reconcile resolution
+  function refreshFromDb(rideId: string) {
+    const detail = loadRideDetail(rideId);
+    if (!detail) return;
+    setPersisted(detail);
+    setDataSource(detail.ride.dataSource);
+  }
+
+  // Start reconciler when we have a saved id + token + provisional state
+  const handleRef = useRef<ReconcilerHandle | null>(null);
+  useEffect(() => {
+    if (!savedRideId || !stravaAccessToken || dataSource === 'strava' || importedFromStrava) {
+      return;
+    }
+    setReconcilerActive(true);
+    setReconcilerExpired(false);
+    const startMs = effectiveStartedAt || Date.now();
+    const handle = startReconciliation(savedRideId, startMs, stravaAccessToken, () => {
+      setReconcilerActive(false);
+      refreshFromDb(savedRideId);
+    });
+    handleRef.current = handle;
+    return () => {
+      handle.stop();
+      setReconcilerActive(false);
+    };
+  }, [savedRideId, stravaAccessToken, dataSource, importedFromStrava, effectiveStartedAt]);
+
+  const [isChecking, setIsChecking] = useState(false);
+  const onCheckAgain = async () => {
+    if (!savedRideId || !stravaAccessToken || isChecking) return;
+    setIsChecking(true);
+    setReconcilerActive(true);
+    const result = await forceReconcileOnce(savedRideId, stravaAccessToken);
+    setIsChecking(false);
+    setReconcilerActive(false);
+    if (result === 'matched') refreshFromDb(savedRideId);
+    else setReconcilerExpired(true);
+  };
+
+  const [showChooser, setShowChooser] = useState(false);
+  const [chooserCandidates, setChooserCandidates] = useState(() => getCachedActivities());
+  const onWrongActivity = () => {
+    setChooserCandidates(getCachedActivities());
+    setShowChooser(true);
+  };
+  const onPickActivity = async (activityId: number) => {
+    setShowChooser(false);
+    if (!savedRideId || !stravaAccessToken) return;
+    try {
+      await remapRideToActivity(savedRideId, activityId, stravaAccessToken);
+      refreshFromDb(savedRideId);
+    } catch (err) {
+      console.warn('[PostRide] remap failed:', err);
+    }
+  };
+  const onUnmap = async () => {
+    setShowChooser(false);
+    if (!savedRideId) return;
+    await unmapRide(savedRideId);
+    refreshFromDb(savedRideId);
+    setDataSource('provisional');
+  };
+
+  // Derive sync state for the badge
+  const syncState: SyncState = (() => {
+    if (importedFromStrava) return 'imported';
+    if (dataSource === 'strava') return 'synced';
+    if (reconcilerActive) return 'awaiting';
+    return 'phone-recorded';
+  })();
+
+  const currentMappedId = useMemo(() => {
+    const id = isHistoryMode ? persisted?.ride.stravaActivityId : null;
+    return id ? Number(id) : null;
+  }, [isHistoryMode, persisted]);
 
   // Build segment results — include skipped segments
   const segmentResults = useMemo(() => {
@@ -492,20 +403,28 @@ export function PostRideSummaryScreenWrapper() {
         timeSec: e.timeSec,
         isNewPR: e.isNewPR,
         gapToPreSeconds: e.gapToPreSeconds,
-        prTimeSec: undefined,
+        // Point-in-time PR (best as of that ride): gap = time − bestTime, so
+        // bestTime = time − gap. First effort (isNewPR && gap===0) had no PR.
+        prTimeSec: e.isNewPR && e.gapToPreSeconds === 0 ? undefined : e.timeSec - e.gapToPreSeconds,
         wasSkipped: false,
         cueTextPlayed: e.cueTextPlayed ?? undefined,
+        highlightPath: sliceTrackBySegment(
+          effectiveTrack,
+          e.startLat != null && e.startLng != null ? { lat: e.startLat, lng: e.startLng } : null,
+          e.endLat != null && e.endLng != null ? { lat: e.endLat, lng: e.endLng } : null,
+        ),
       }));
     }
     const completedIds = new Set(completedSegments.map(c => c.segmentId));
     const results: Array<{
       id: string; name: string; timeSec: number; isNewPR: boolean;
       gapToPreSeconds: number; prTimeSec?: number; wasSkipped: boolean;
-      cueTextPlayed?: string;
+      cueTextPlayed?: string; highlightPath?: LatLng[];
     }> = [];
 
     // Add completed segments
     for (const c of completedSegments) {
+      const seg = starredSegments.find(s => s.id === c.segmentId);
       results.push({
         id: c.segmentId,
         name: c.name,
@@ -515,6 +434,11 @@ export function PostRideSummaryScreenWrapper() {
         prTimeSec: c.prTimeSec,
         wasSkipped: false,
         cueTextPlayed: c.cueTextPlayed,
+        highlightPath: sliceTrackBySegment(
+          effectiveTrack,
+          seg ? { lat: seg.startLat, lng: seg.startLng } : null,
+          seg ? { lat: seg.endLat, lng: seg.endLng } : null,
+        ),
       });
     }
 
@@ -533,7 +457,7 @@ export function PostRideSummaryScreenWrapper() {
     }
 
     return results;
-  }, [completedSegments, routeSegmentIds, starredSegments]);
+  }, [isHistoryMode, persisted, completedSegments, routeSegmentIds, starredSegments, effectiveTrack]);
 
   // Generate debrief text — use persisted text in history mode if present
   const debriefText = useMemo(() => {
@@ -576,25 +500,152 @@ export function PostRideSummaryScreenWrapper() {
 
   function handleDone() {
     if (!isHistoryMode) useRideStore.getState().resetRide();
-    navigation.getParent()?.navigate('Main');
+    navigation.getParent()?.navigate('Main', { screen: 'Home' });
   }
 
-  const stravaSynced = isHistoryMode ? (persisted?.ride.stravaSynced ?? false) : false;
+  // Hardware/gesture back from ride details always returns to Home.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!isHistoryMode) useRideStore.getState().resetRide();
+      navigation.getParent()?.navigate('Main', { screen: 'Home' });
+      return true;
+    });
+    return () => sub.remove();
+  }, [isHistoryMode, navigation]);
+
+  const showConnectStravaHint = !stravaAccessToken && syncState === 'phone-recorded' && !isHistoryMode;
+  const showAwaitingExpiredHint = reconcilerExpired && syncState === 'phone-recorded';
+
+  // ── Unified Home Feed: lazy summary, metrics, audio state, sparkline trends ──
+  const jwt = useAuthStore((s) => s.jwt);
+  const [summaryState, setSummaryState] = useState<SummaryTextState>('loading');
+  const [summaryText, setSummaryText] = useState<string>('');
+  const [audioState, setAudioState] = useState<AudioButtonState>('idle');
+  const [metricsView, setMetricsView] = useState<ReturnType<typeof computeMetricsForRide> | null>(null);
+  const summaryLoadedRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!savedRideId) return;
+    if (summaryLoadedRef.current === savedRideId) return;
+    summaryLoadedRef.current = savedRideId;
+
+    // Recompute metrics from the just-persisted row
+    const ride = db.select().from(rides).where(eq(rides.id, savedRideId)).get();
+    if (ride) setMetricsView(computeMetricsForRide(ride));
+
+    setSummaryState('loading');
+    getOrGenerateSummary(savedRideId, jwt)
+      .then((result) => {
+        setSummaryText(result.text);
+        setSummaryState(result.status === 'fallback' ? 'fallback' : 'loaded');
+      })
+      .catch(() => setSummaryState('fallback'));
+  }, [savedRideId, jwt]);
+
+  // Map metrics view → MetricsBlock props
+  const metricsProps = useMemo(() => {
+    if (!metricsView) return undefined;
+    const hrRow = metricsView.rows.find((r) => r.label === 'Avg HR');
+    const wRow = metricsView.rows.find((r) => r.label === 'Avg Power');
+    const weekRow = metricsView.rows.find((r) => r.label === 'This week');
+    const ride = savedRideId
+      ? db.select().from(rides).where(eq(rides.id, savedRideId)).get()
+      : null;
+    return {
+      avgHrBpm: ride?.avgHrBpm ?? undefined,
+      avgHrDeltaPct: hrRow?.delta?.pct
+        ? (hrRow.delta.direction === 'down' ? hrRow.delta.pct : -hrRow.delta.pct)
+        : undefined,
+      avgWatts: ride?.avgWatts ?? undefined,
+      avgWattsDeltaPct: wRow?.delta?.pct
+        ? (wRow.delta.direction === 'up' ? wRow.delta.pct : -wRow.delta.pct)
+        : undefined,
+      fitnessTrend: weekRow
+        ? {
+            weeklyDistanceKm: parseInt(weekRow.value, 10) || 0,
+            direction: weekRow.delta?.direction ?? 'flat',
+          }
+        : undefined,
+      baselineProgress: metricsView.baselineBuildingCount !== undefined
+        ? { current: metricsView.baselineBuildingCount, required: BASELINE_TARGET }
+        : undefined,
+    };
+  }, [metricsView, savedRideId]);
+
+  // Audio CTA: live-coach already auto-spoke; here we just play on demand from cached/lazy summary
+  const handleListenDebrief = () => {
+    if (audioState === 'playing') {
+      stopTTS();
+      setAudioState('idle');
+      return;
+    }
+    const text = summaryText || debriefText;
+    if (!text) return;
+    setAudioState('playing');
+    speak(text, {
+      onDone: () => setAudioState('idle'),
+      onStopped: () => setAudioState('idle'),
+    });
+  };
+  useEffect(() => {
+    return () => { stopTTS(); };
+  }, []);
+
+  // Attach recent-effort trends to segment results for sparklines
+  const segmentResultsWithTrends = useMemo(() => {
+    if (!rider || !savedRideId) return segmentResults;
+    const ride = db.select().from(rides).where(eq(rides.id, savedRideId)).get();
+    if (!ride) return segmentResults;
+    return segmentResults.map((seg) => {
+      const trend = loadSegmentEffortTrend(seg.id, rider.id, ride.startedAt, 5);
+      return { ...seg, recentEffortsSec: trend.map((t) => t.timeSec) };
+    });
+  }, [segmentResults, savedRideId, rider]);
+
+  const chooserList = chooserCandidates.map((a) => ({
+    id: a.id,
+    name: a.name,
+    startedAt: Math.floor(new Date(a.start_date).getTime() / 1000),
+    distanceM: a.distance,
+    elapsedSec: a.moving_time,
+  }));
 
   return (
-    <PostRideSummaryScreen
-      rideName={rideName}
-      rideDate={rideDate}
-      distanceKm={effectiveDistanceKm}
-      durationSec={durationSec}
-      elevationM={isHistoryMode ? (persisted?.ride.elevationM ?? 0) : 0}
-      segmentResults={segmentResults}
-      stravaSynced={stravaSynced}
-      debriefText={debriefText}
-      onListenDebrief={() => speak(debriefText)}
-      onShare={() => {}}
-      onDone={handleDone}
-    />
+    <>
+      <PostRideSummaryScreen
+        rideName={rideName}
+        rideDate={rideDate}
+        distanceKm={effectiveDistanceKm}
+        durationSec={durationSec}
+        elevationM={isHistoryMode ? (persisted?.ride.elevationM ?? 0) : 0}
+        avgHrBpm={isHistoryMode ? (persisted?.ride.avgHrBpm ?? undefined) : undefined}
+        avgWatts={isHistoryMode ? (persisted?.ride.avgWatts ?? undefined) : undefined}
+        rideTrack={effectiveTrack}
+        segmentResults={segmentResultsWithTrends}
+        syncState={syncState}
+        segmentDataSource={dataSource}
+        onWrongActivity={syncState === 'synced' && !importedFromStrava && stravaAccessToken ? onWrongActivity : undefined}
+        onCheckAgain={syncState === 'phone-recorded' && stravaAccessToken ? onCheckAgain : undefined}
+        showConnectStravaHint={showConnectStravaHint}
+        showAwaitingExpiredHint={showAwaitingExpiredHint}
+        debriefText={summaryText || debriefText}
+        coachedBySherpaa={!isHistoryMode || (persisted?.ride.coachedBySherpaa ?? false)}
+        summaryState={summaryState}
+        metrics={metricsProps}
+        audioState={audioState}
+        onListenDebrief={handleListenDebrief}
+        onShare={() => {}}
+        onDone={handleDone}
+      />
+      <WrongActivityChooser
+        visible={showChooser}
+        currentlyMappedId={currentMappedId}
+        candidates={chooserList}
+        onPick={onPickActivity}
+        onUnmap={onUnmap}
+        onDismiss={() => setShowChooser(false)}
+      />
+    </>
   );
 }
 

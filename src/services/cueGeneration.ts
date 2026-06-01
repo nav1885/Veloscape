@@ -8,7 +8,7 @@
 
 import { API_URL } from '../constants/config';
 import { Segment } from '../store/segmentStore';
-import { GoalMode } from '../components/RouteSetupScreen';
+import { GoalMode } from '../types/goalMode';
 
 export interface GeneratedCue {
   segmentIndex: number;

@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../constants/colors';
+import { distanceUnit, speedUnit, formatDistanceKm, formatSpeedKmh } from '../utils/units';
+import { GoalMode, GOAL_LABELS } from '../types/goalMode';
 // TODO: implement 2-second hold with LongPressGestureHandler from react-native-gesture-handler
 
 interface NextSegment {
@@ -17,6 +19,7 @@ interface Props {
   distanceKm: number;
   gpsLocked: boolean;
   audioActive: boolean;
+  goalMode: GoalMode;        // shown as a persistent HUD chip (esp. for quiet Recovery)
   nextSegment?: NextSegment; // undefined when no more segments ahead
   onEndRide: () => void;     // called after 2-second hold confirmed
 }
@@ -29,6 +32,7 @@ export default function InRideScreen({
   distanceKm,
   gpsLocked,
   audioActive,
+  goalMode,
   nextSegment,
   onEndRide,
 }: Props) {
@@ -39,6 +43,9 @@ export default function InRideScreen({
       <View style={styles.statusBar}>
         <Text style={styles.elapsed}>{elapsedTime}</Text>
         <View style={styles.statusPills}>
+          <View style={styles.modePill} accessibilityLabel={`${GOAL_LABELS[goalMode]} mode`}>
+            <Text style={styles.modePillText}>{GOAL_LABELS[goalMode]}</Text>
+          </View>
           <View style={styles.pill}>
             <View style={[styles.pillDot, { backgroundColor: gpsLocked ? colors.success : colors.error }]} />
             <Text style={[styles.pillText, { color: gpsLocked ? colors.success : colors.error }]}>GPS</Text>
@@ -56,24 +63,24 @@ export default function InRideScreen({
       {nextSegment ? (
         <View style={styles.nextSegPill}>
           <View>
-            <Text style={styles.nextSegLabel}>Next segment</Text>
+            <Text style={styles.nextSegLabel}>Next nearby</Text>
             <Text style={styles.nextSegName}>{nextSegment.name}</Text>
           </View>
           <View style={styles.nextSegDistWrap}>
-            <Text style={styles.nextSegDist}>{nextSegment.distanceKm.toFixed(1)}</Text>
-            <Text style={styles.nextSegDistLabel}>km away</Text>
+            <Text style={styles.nextSegDist}>{formatDistanceKm(nextSegment.distanceKm).split(' ')[0]}</Text>
+            <Text style={styles.nextSegDistLabel}>{distanceUnit()} away</Text>
           </View>
         </View>
       ) : (
         <View style={[styles.nextSegPill, { opacity: 0.5 }]}>
-          <Text style={styles.nextSegName}>No more segments · {distanceKm.toFixed(1)} km ridden</Text>
+          <Text style={styles.nextSegName}>No more segments · {formatDistanceKm(distanceKm)} ridden</Text>
         </View>
       )}
 
       {/* Speed — hero element */}
       <View style={styles.speedWrap}>
-        <Text style={styles.speed}>{Math.round(speedKmh)}</Text>
-        <Text style={styles.speedUnit}>km/h</Text>
+        <Text style={styles.speed}>{formatSpeedKmh(speedKmh).split(' ')[0]}</Text>
+        <Text style={styles.speedUnit}>{speedUnit()}</Text>
 
         {/* Secondary metrics */}
         <View style={styles.metricsRow}>
@@ -96,8 +103,8 @@ export default function InRideScreen({
             </>
           )}
           <View style={styles.metric}>
-            <Text style={styles.metricVal}>{distanceKm.toFixed(1)}</Text>
-            <Text style={styles.metricLabel}>km</Text>
+            <Text style={styles.metricVal}>{formatDistanceKm(distanceKm).split(' ')[0]}</Text>
+            <Text style={styles.metricLabel}>{distanceUnit()}</Text>
           </View>
         </View>
       </View>
@@ -159,6 +166,21 @@ const styles = StyleSheet.create({
   },
   pillAudio: {
     fontSize: 11,
+    color: colors.gold,
+  },
+  modePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.goldDim,
+    borderWidth: 1,
+    borderColor: colors.goldBorder,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  modePillText: {
+    fontSize: 11,
+    fontWeight: '600',
     color: colors.gold,
   },
   nextSegPill: {

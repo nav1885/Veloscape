@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Sherpaa — Quick-Start Modes (Stencil mockup)</title>
+<style>
+  :root {
+    --bg: #1C1C1E;
+    --bgDeep: #111111;
+    --surface: #2A2A2A;
+    --surfaceAlt: #242424;
+    --surfaceElevated: #1E1E1E;
+    --borderSubtle: #2E2E2E;
+    --border: #363636;
+    --borderMuted: #333333;
+    --borderStrong: #3A3A3A;
+    --gold: #F5C842;
+    --goldDim: rgba(245,200,66,0.10);
+    --goldBorder: rgba(245,200,66,0.20);
+    --textPrimary: #F0F0F0;
+    --textSecondary: #888888;
+    --textMuted: #555555;
+    --textDim: #444444;
+    --textOnGold: #000000;
+    --success: #30A46C;
+    --successDim: rgba(48,164,108,0.08);
+    --successBorder: rgba(48,164,108,0.20);
+    --error: #E5484D;
+    --errorDim: rgba(229,72,77,0.10);
+    --errorBorder: rgba(229,72,77,0.20);
+    --imported: #4DA3FF;
+    --importedDim: rgba(77,163,255,0.10);
+    --importedBorder: rgba(77,163,255,0.22);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #0a0a0c;
+    color: var(--textPrimary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 1700px; margin: 0 auto; padding: 32px 24px 80px; }
+  h1 { font-size: 22px; font-weight: 700; margin: 0 0 4px; letter-spacing: -0.4px; }
+  .lede { color: #999; font-size: 14px; margin: 0 0 28px; max-width: 760px; line-height: 1.55; }
+  .lede code { color: #bbb; }
+  h2.flow { font-size: 14px; color: #999; letter-spacing: 1.2px; text-transform: uppercase; margin: 30px 0 14px; }
+  .deck-row { display: flex; gap: 32px; align-items: flex-start; margin-bottom: 20px; overflow-x: auto; padding-bottom: 8px; }
+  .frame-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .frame-title { font-size: 13px; font-weight: 600; color: #999; letter-spacing: 0.3px; text-transform: uppercase; }
+
+  /* Phone frame */
+  .phone {
+    width: 380px; height: 800px; border-radius: 44px; background: #000; padding: 10px;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6), 0 0 0 1.5px #222 inset; position: relative; flex-shrink: 0;
+  }
+  .screen {
+    width: 100%; height: 100%; border-radius: 34px; background: var(--bg);
+    overflow: hidden; display: flex; flex-direction: column; position: relative;
+  }
+  .screen.deep { background: var(--bgDeep); }
+  .status-bar {
+    height: 36px; display: flex; align-items: center; justify-content: space-between;
+    padding: 0 22px; font-size: 12px; font-weight: 600; color: var(--textPrimary);
+  }
+  .status-icons { display: flex; gap: 6px; opacity: 0.85; font-size: 11px; }
+  .scroll { flex: 1; overflow-y: auto; }
+  .scroll::-webkit-scrollbar { width: 0; }
+  .tab-bar { height: 64px; border-top: 1px solid var(--borderMuted); display: flex; }
+  .tab { flex: 1; display: flex; align-items: center; justify-content: center; color: var(--textDim); font-size: 26px; border-right: 0.5px solid var(--borderMuted); }
+  .tab:last-child { border-right: 0; }
+  .tab.active { color: var(--gold); }
+  .home-ind { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); width: 128px; height: 4px; border-radius: 99px; background: rgba(255,255,255,0.7); }
+
+  /* Home header */
+  .home-header { padding: 16px 20px 12px; display: flex; justify-content: space-between; align-items: flex-start; }
+  .greeting { font-size: 18px; font-weight: 600; }
+  .meta { font-size: 12px; color: var(--textMuted); margin-top: 4px; }
+  .meta .live { color: var(--gold); }
+  .avatar { width: 36px; height: 36px; border-radius: 999px; background: var(--gold); display: flex; align-items: center; justify-content: center; color: var(--textOnGold); font-weight: 700; font-size: 14px; }
+
+  /* Section label (matches "RECENT RIDES" recipe) */
+  .section-label { padding: 18px 20px 10px; font-size: 11px; font-weight: 600; color: var(--textDim); letter-spacing: 1.2px; text-transform: uppercase; }
+  .section-label.tight { padding: 24px 20px 8px; }
+
+  /* ModeSelector — 3 goalChips */
+  .mode-row { display: flex; gap: 8px; padding: 0 20px; }
+  .chip {
+    flex: 1; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    background: var(--surface); border: 1px solid var(--border); color: var(--textSecondary);
+    font-size: 13px; font-weight: 500;
+  }
+  .chip.sel { background: var(--gold); border-color: var(--gold); color: var(--textOnGold); font-weight: 600; }
+
+  /* Start Ride — btn-gold 54px */
+  .start-btn {
+    margin: 16px 20px 0; height: 54px; border-radius: 999px; background: var(--gold);
+    color: var(--textOnGold); font-size: 17px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .start-btn.disabled { opacity: 0.35; }
+
+  /* Cold-cue whisper */
+  .cold-note {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 10px 24px 0; font-size: 12px; font-weight: 500; color: var(--textMuted); text-align: center; line-height: 1.4;
+  }
+  .cold-note svg { flex-shrink: 0; }
+
+  /* Plan a route — demoted secondary row */
+  .plan-row {
+    margin: 12px 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; display: flex; align-items: center; gap: 12px;
+  }
+  .plan-body { flex: 1; }
+  .plan-title { font-size: 15px; font-weight: 500; color: var(--textSecondary); }
+  .plan-sub { font-size: 13px; color: var(--textMuted); margin-top: 2px; }
+  .plan-chevron { font-size: 20px; color: var(--textDim); }
+
+  /* Helper card (no-segments) */
+  .helper-card {
+    margin: 12px 20px 0; padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  }
+  .helper-top { display: flex; gap: 10px; align-items: flex-start; }
+  .helper-body { font-size: 13px; font-weight: 400; color: var(--textSecondary); line-height: 1.45; }
+  .refresh-btn {
+    margin-top: 14px; height: 40px; border-radius: 999px; background: transparent; border: 1px solid var(--borderStrong);
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 18px;
+    color: var(--gold); font-size: 14px; font-weight: 600;
+  }
+
+  /* Recent rides */
+  .ride-row { margin: 0 20px 10px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+  .ride-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+  .ride-title { font-size: 15px; font-weight: 600; }
+  .ride-date { font-size: 11px; font-weight: 500; color: var(--textDim); }
+  .ride-stats { font-size: 14px; color: var(--textSecondary); font-weight: 500; margin-bottom: 10px; }
+  .ride-bottom { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px; border-radius: 999px; border: 1px solid; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
+  .pill .dot { width: 8px; height: 8px; border-radius: 999px; }
+  .pill.synced { background: var(--successDim); border-color: var(--successBorder); color: var(--success); }
+  .pill.synced .dot { background: var(--success); }
+  .pill.phone { background: var(--surfaceAlt); border-color: var(--borderSubtle); color: var(--textSecondary); }
+  .pill.phone .dot { background: var(--textMuted); }
+  .pill.coached { background: var(--goldDim); border-color: var(--goldBorder); color: var(--gold); height: 20px; padding: 0 7px; }
+  .audio-btn { width: 36px; height: 36px; border-radius: 999px; background: var(--goldDim); border: 1px solid var(--goldBorder); display: flex; align-items: center; justify-content: center; color: var(--gold); font-size: 13px; flex-shrink: 0; }
+  .empty-feed { padding: 24px 32px; text-align: center; color: var(--textSecondary); font-size: 14px; line-height: 1.5; }
+
+  /* ---- In-Ride HUD ---- */
+  .hud-top { display: flex; align-items: center; justify-content: space-between; padding: 8px 20px 0; }
+  .hud-elapsed { font-size: 13px; font-weight: 600; color: var(--textPrimary); font-variant-numeric: tabular-nums; }
+  .hud-pills { display: flex; align-items: center; gap: 8px; }
+  .hud-pill { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 9px; border-radius: 999px; font-size: 11px; font-weight: 600; letter-spacing: 0.3px; }
+  .hud-pill.neutral { background: var(--surfaceElevated); border: 1px solid var(--borderSubtle); color: var(--textSecondary); }
+  .hud-pill.neutral .dot { width: 7px; height: 7px; border-radius: 999px; background: var(--success); }
+  .hud-pill.mode { background: var(--goldDim); border: 1px solid var(--goldBorder); color: var(--gold); }
+  .hud-pill.mode svg { flex-shrink: 0; }
+
+  .next-card { margin: 18px 20px 0; padding: 14px 16px; background: var(--goldDim); border: 1px solid var(--goldBorder); border-radius: 12px; }
+  .next-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .next-label { font-size: 11px; font-weight: 700; color: var(--gold); letter-spacing: 1px; }
+  .next-away { font-size: 13px; font-weight: 600; color: var(--textSecondary); }
+  .next-name { font-size: 22px; font-weight: 700; color: var(--gold); margin-top: 4px; letter-spacing: -0.3px; }
+
+  .speed-block { text-align: center; padding: 40px 0 12px; }
+  .speed-val { font-size: 96px; font-weight: 800; color: var(--textPrimary); line-height: 1; font-variant-numeric: tabular-nums; }
+  .speed-unit { font-size: 14px; font-weight: 600; color: var(--textSecondary); letter-spacing: 2px; margin-top: 6px; }
+  .metric-tri { display: flex; align-items: center; justify-content: center; padding: 18px 0 0; }
+  .mt-cell { flex: 1; text-align: center; }
+  .mt-cell .v { font-size: 22px; font-weight: 700; color: var(--textPrimary); font-variant-numeric: tabular-nums; }
+  .mt-cell .l { font-size: 12px; color: var(--textSecondary); margin-top: 2px; }
+  .mt-div { width: 1px; height: 36px; background: var(--borderSubtle); }
+  .end-ride { position: absolute; left: 0; right: 0; bottom: 44px; display: flex; justify-content: center; }
+  .end-ride .btn { display: inline-flex; align-items: center; gap: 8px; height: 48px; padding: 0 26px; border-radius: 999px; border: 1px solid var(--borderStrong); background: transparent; color: var(--textSecondary); font-size: 15px; font-weight: 600; }
+  .quiet-tag { margin: 14px 20px 0; text-align: center; font-size: 12px; color: var(--textMuted); font-style: italic; }
+
+  .annot { font-size: 11px; color: #777; margin-top: 4px; max-width: 360px; line-height: 1.5; }
+  .annot strong { color: #aaa; }
+  .annot code { color: #999; }
+  .legend { margin-top: 24px; background: #15151a; border: 1px solid #2a2a2e; border-radius: 12px; padding: 18px 22px; font-size: 13px; color: #aaa; line-height: 1.6; max-width: 1100px; }
+  .legend strong { color: var(--gold); }
+  .legend ul { margin: 8px 0 0 0; padding-left: 18px; }
+  .pulse-now { position: absolute; top: 12px; right: 14px; background: rgba(245,200,66,0.16); color: var(--gold); padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; letter-spacing: 0.4px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Sherpaa — Quick-Start Modes · One-Tap PR / Training / Recovery</h1>
+  <p class="lede">
+    Visual mockup of the mode-first pivot: replace the high-friction "plan a ride" flow with a one-tap mode picker.
+    Built from the color tokens in <code>src/constants/colors.ts</code> and the layout in
+    <code>docs/design/QuickStartModes_HomeFlow_REVIEW.md</code> (implements <code>docs/amendments/QuickStartModes_Amendment.md</code>).
+    Not a screenshot — a faithful static render of the intended design. All 10 of Stencil's open-question picks are baked in
+    (54px <code>btn-gold</code>, label-only Start, "PR/Training/Recovery" labels, whisper cold-cue, trophy/barbell/leaf mode icons, "NEXT NEARBY").
+    <strong>Updated per founder direction: the "Plan a route" flow is deleted entirely — the app is mode-first only.</strong>
+  </p>
+
+  <h2 class="flow">Flow · Home — mode-first Quick-Start</h2>
+  <div class="deck-row">
+
+    <!-- HOME: default, warm -->
+    <div class="frame-wrap">
+      <div class="frame-title">Home · default (Training, cues warm)</div>
+      <div class="phone"><div class="screen">
+        <div class="status-bar"><span>9:41</span><span class="status-icons">●●●● 4G ▮</span></div>
+        <div class="scroll">
+          <div class="home-header">
+            <div>
+              <div class="greeting">Good morning, Jane.</div>
+              <div class="meta">12 starred segments · Last synced 2h ago</div>
+            </div>
+            <div class="avatar">J</div>
+          </div>
+
+          <div class="section-label">Goal Mode</div>
+          <div class="mode-row">
+            <div class="chip">PR</div>
+            <div class="chip sel">Training</div>
+            <div class="chip">Recovery</div>
+          </div>
+
+          <div class="start-btn">Start Ride</div>
+
+
+          <div class="section-label tight">Recent Rides</div>
+          <div class="ride-row">
+            <div class="ride-top"><div class="ride-title">Morning Climb to Grizzly</div><div class="ride-date">APR 11</div></div>
+            <div class="ride-stats">42.1 km · 1:38:24</div>
+            <div class="ride-bottom">
+              <div class="badges"><span class="pill synced"><span class="dot"></span>Synced from Strava</span><span class="pill coached">🎙 Coached</span></div>
+              <div class="audio-btn">▶</div>
+            </div>
+          </div>
+          <div class="ride-row">
+            <div class="ride-top"><div class="ride-title">Recovery spin</div><div class="ride-date">APR 8</div></div>
+            <div class="ride-stats">18.4 km · 0:42:30</div>
+            <div class="ride-bottom">
+              <div class="badges"><span class="pill phone"><span class="dot"></span>Phone-recorded</span><span class="pill coached">🎙 Coached</span></div>
+              <div class="audio-btn">▶</div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-bar"><div class="tab active">⌂</div><div class="tab">◈</div><div class="tab">◷</div><div class="tab">⚙</div></div>
+        <div class="home-ind"></div>
+      </div></div>
+      <p class="annot">
+        <strong>The whole pivot in one screen.</strong> Order: greeting → <code>GOAL MODE</code> 3-chip selector
+        (Training pre-selected = <code>goalChipSelected</code>) → gold <strong>Start Ride</strong> (<code>btn-gold</code>, 54px) →
+        feed (unchanged). That is the entire entry surface — <strong>no "Plan a route", no route step, nothing else to decide.</strong>
+        Tap Start Ride → straight into the ride.
+      </p>
+    </div>
+
+    <!-- HOME: PR selected (mode switch) -->
+    <div class="frame-wrap">
+      <div class="frame-title">Home · mode switched to PR</div>
+      <div class="phone"><div class="screen">
+        <div class="status-bar"><span>9:41</span><span class="status-icons">●●●● 4G ▮</span></div>
+        <div class="scroll">
+          <div class="home-header">
+            <div>
+              <div class="greeting">Good morning, Jane.</div>
+              <div class="meta">12 starred segments · Last synced 2h ago</div>
+            </div>
+            <div class="avatar">J</div>
+          </div>
+
+          <div class="section-label">Goal Mode</div>
+          <div class="mode-row">
+            <div class="chip sel">PR</div>
+            <div class="chip">Training</div>
+            <div class="chip">Recovery</div>
+          </div>
+
+          <div class="start-btn">Start Ride</div>
+
+
+          <div class="section-label tight">Recent Rides</div>
+          <div class="ride-row">
+            <div class="ride-top"><div class="ride-title">Morning Climb to Grizzly</div><div class="ride-date">APR 11</div></div>
+            <div class="ride-stats">42.1 km · 1:38:24</div>
+            <div class="ride-bottom">
+              <div class="badges"><span class="pill synced"><span class="dot"></span>Synced from Strava</span><span class="pill coached">🎙 Coached</span></div>
+              <div class="audio-btn">▶</div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-bar"><div class="tab active">⌂</div><div class="tab">◈</div><div class="tab">◷</div><div class="tab">⚙</div></div>
+        <div class="home-ind"></div>
+      </div></div>
+      <p class="annot">
+        <strong>Mode switch.</strong> Tap any chip → <em>selection</em> haptic, ~120ms gold⇄surface cross-fade, and
+        <code>settingsStore.setLastGoalMode()</code> writes through immediately (sticky next launch + warms the right mode at next sync).
+        Exactly one chip selected always (radiogroup). Re-tapping the current chip is a no-op.
+      </p>
+    </div>
+
+    <!-- HOME: cold cue -->
+    <div class="frame-wrap">
+      <div class="frame-title">Home · cues still preparing</div>
+      <div class="phone"><div class="screen">
+        <div class="status-bar"><span>9:41</span><span class="status-icons">●●●● 4G ▮</span></div>
+        <div class="scroll">
+          <div class="home-header">
+            <div>
+              <div class="greeting">Good morning, Jane.</div>
+              <div class="meta">12 starred segments · <span class="live">Just now</span></div>
+            </div>
+            <div class="avatar">J</div>
+          </div>
+
+          <div class="section-label">Goal Mode</div>
+          <div class="mode-row">
+            <div class="chip">PR</div>
+            <div class="chip sel">Training</div>
+            <div class="chip">Recovery</div>
+          </div>
+
+          <div class="start-btn">Start Ride</div>
+          <div class="cold-note">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#F5C842"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            <span>Coaching cues are still preparing — your ride starts now, cues fill in shortly.</span>
+          </div>
+
+
+          <div class="section-label tight">Recent Rides</div>
+          <div class="ride-row">
+            <div class="ride-top"><div class="ride-title">Morning Climb to Grizzly</div><div class="ride-date">APR 11</div></div>
+            <div class="ride-stats">42.1 km · 1:38:24</div>
+            <div class="ride-bottom">
+              <div class="badges"><span class="pill synced"><span class="dot"></span>Synced from Strava</span><span class="pill coached">🎙 Coached</span></div>
+              <div class="audio-btn">▶</div>
+            </div>
+          </div>
+        </div>
+        <div class="tab-bar"><div class="tab active">⌂</div><div class="tab">◈</div><div class="tab">◷</div><div class="tab">⚙</div></div>
+        <div class="home-ind"></div>
+      </div></div>
+      <p class="annot">
+        <strong>Cold-cue whisper.</strong> Newly-synced stars or an un-warmed mode → a single muted line under Start Ride
+        (gold note-icon, no card, no border, no error color). <strong>Start Ride stays fully enabled</strong> — the ride is never
+        blocked; un-cued segments fall back to the plain approach line. Note fades out when pre-gen finishes.
+      </p>
+    </div>
+
+    <!-- HOME: no starred segments -->
+    <div class="frame-wrap">
+      <div class="frame-title">Home · no starred segments</div>
+      <div class="phone"><div class="screen">
+        <div class="status-bar"><span>9:41</span><span class="status-icons">●●●● 4G ▮</span></div>
+        <div class="scroll">
+          <div class="home-header">
+            <div>
+              <div class="greeting">Good morning, Jane.</div>
+              <div class="meta">No starred segments · Last synced 2h ago</div>
+            </div>
+            <div class="avatar">J</div>
+          </div>
+
+          <div class="section-label">Goal Mode</div>
+          <div class="mode-row">
+            <div class="chip">PR</div>
+            <div class="chip sel">Training</div>
+            <div class="chip">Recovery</div>
+          </div>
+
+          <div class="start-btn disabled">Start Ride</div>
+
+          <div class="helper-card">
+            <div class="helper-top">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#888888" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="8" r="0.6" fill="#888888" stroke="none"/></svg>
+              <div class="helper-body">Star segments on Strava, then sync to start a coached ride.</div>
+            </div>
+            <div class="refresh-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5C842" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/></svg>
+              Refresh
+            </div>
+          </div>
+
+
+          <div class="section-label tight">Recent Rides</div>
+          <div class="empty-feed">No rides in the last 30 days.<br/>Your next ride will appear here automatically.</div>
+        </div>
+        <div class="tab-bar"><div class="tab active">⌂</div><div class="tab">◈</div><div class="tab">◷</div><div class="tab">⚙</div></div>
+        <div class="home-ind"></div>
+      </div></div>
+      <p class="annot">
+        <strong>Disabled state</strong> (<code>getStarredSegmentCount() === 0</code>). Start Ride at opacity 0.35, inert
+        (no nav, no haptic). Helper card carries the amendment's copy + a <strong>Refresh</strong> button (force-sync, same as
+        pull-to-refresh). ModeSelector stays live — pre-pick a mode, and the moment a sync brings in stars, Start enables with
+        the mode already chosen. No alternate "plan a route" path — starring + syncing is the one way in.
+      </p>
+    </div>
+  </div>
+
+  <h2 class="flow">Flow · In-Ride HUD deltas — mode chip + "NEXT NEARBY"</h2>
+  <div class="deck-row">
+
+    <!-- IN-RIDE: Recovery -->
+    <div class="frame-wrap">
+      <div class="frame-title">In-Ride · Recovery (the quiet case)</div>
+      <div class="phone"><div class="screen deep">
+        <div class="status-bar"><span>9:41</span><span class="status-icons">●●●● 4G ▮</span></div>
+        <div class="scroll">
+          <div class="hud-top">
+            <span class="hud-elapsed">1:04:22</span>
+            <div class="hud-pills">
+              <span class="hud-pill mode"><svg width="12" height="12" viewBox="0 0 24 24" fill="#F5C842"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z"/></svg>Recovery</span>
+              <span class="hud-pill neutral"><span class="dot"></span>GPS</span>
+              <span class="hud-pill neutral">♪ On</span>
+            </div>
+          </div>
+
+          <div class="next-card">
+            <div class="next-top"><div class="next-label">NEXT NEARBY</div><div class="next-away">2.4 km away</div></div>
+            <div class="next-name">Hawk Hill</div>
+          </div>
+
+          <div class="speed-block">
+            <div class="speed-val">18</div>
+            <div class="speed-unit">KM/H</div>
+          </div>
+          <div class="metric-tri">
+            <div class="mt-cell"><div class="v">138</div><div class="l">bpm</div></div>
+            <div class="mt-div"></div>
+            <div class="mt-cell"><div class="v">—</div><div class="l">watts</div></div>
+            <div class="mt-div"></div>
+            <div class="mt-cell"><div class="v">24.8</div><div class="l">km</div></div>
+          </div>
+
+          <div class="quiet-tag">Recovery — cues stay light. Ride easy.</div>
+        </div>
+        <div class="end-ride"><div class="btn">■ &nbsp;Hold to End Ride</div></div>
+        <div class="home-ind"></div>
+      </div></div>
+      <p class="annot">
+        <strong>Recovery's quiet reads as deliberate.</strong> The gold-tinted <strong>mode chip</strong> (<code>goldDim</code>/<code>goldBorder</code>,
+        leaf icon) sits leftmost in the status-pill cluster, persistent all ride. Recovery suppresses <code>start</code> + all
+        <code>split</code> cues (long silent stretches) — the chip is the visual contract that this is on purpose, not broken.
+      </p>
+    </div>
+
+    <!-- IN-RIDE: PR -->
+    <div class="frame-wrap">
+      <div class="frame-title">In-Ride · PR (all cues fire)</div>
+      <div class="phone"><div class="screen deep">
+        <div class="status-bar"><span>9:41</span><span class="status-icons">●●●● 4G ▮</span></div>
+        <div class="scroll">
+          <div class="hud-top">
+            <span class="hud-elapsed">0:48:10</span>
+            <div class="hud-pills">
+              <span class="hud-pill mode"><svg width="12" height="12" viewBox="0 0 24 24" fill="#F5C842"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6m12 0h1.5a2.5 2.5 0 0 1 0 5H18M6 4v6a6 6 0 0 0 12 0V4M8 21h8m-4-3v3"/></svg>PR</span>
+              <span class="hud-pill neutral"><span class="dot"></span>GPS</span>
+              <span class="hud-pill neutral">♪ On</span>
+            </div>
+          </div>
+
+          <div class="next-card">
+            <div class="next-top"><div class="next-label">NEXT NEARBY</div><div class="next-away">300 m away</div></div>
+            <div class="next-name">Paradise Loop</div>
+          </div>
+
+          <div class="speed-block">
+            <div class="speed-val">34</div>
+            <div class="speed-unit">KM/H</div>
+          </div>
+          <div class="metric-tri">
+            <div class="mt-cell"><div class="v">172</div><div class="l">bpm</div></div>
+            <div class="mt-div"></div>
+            <div class="mt-cell"><div class="v">312</div><div class="l">watts</div></div>
+            <div class="mt-div"></div>
+            <div class="mt-cell"><div class="v">19.2</div><div class="l">km</div></div>
+          </div>
+        </div>
+        <div class="end-ride"><div class="btn">■ &nbsp;Hold to End Ride</div></div>
+        <div class="home-ind"></div>
+      </div></div>
+      <p class="annot">
+        <strong>PR mode</strong> shows a trophy chip and fires every cue type (approach=aggressive variant, start, splits on
+        ±3s, end with PR gap). Same chip mechanism, different icon/label. <strong>"NEXT NEARBY"</strong> replaces "Next segment"
+        for every ride — honest because Quick-Start loads all starred segments with no fixed order.
+      </p>
+    </div>
+  </div>
+
+  <div class="legend">
+    <strong>Key decisions baked into this mockup (Stencil's picks on all 10 open questions):</strong>
+    <ul>
+      <li>Start Ride = <code>btn-gold</code> 54px, label-only (no play icon) — confident without shouting over the feed.</li>
+      <li>ModeSelector reuses RouteSetup's <code>goalChip</code>/<code>goalChipSelected</code> verbatim. Labels "PR / Training / Recovery". Zero new tokens.</li>
+      <li><strong>Plan-a-route flow removed entirely</strong> — the app is mode-first only. RouteSetup / PreRideBrief / route-matching / on-demand cue generation are all gone. Cues come from background pre-gen + the non-LLM fallback line.</li>
+      <li>Cold-cue = a whisper line under the button, never a banner, never disables Start.</li>
+      <li>In-Ride mode chip is gold-tinted, persistent, status-only (no in-ride switching). Icons: PR=trophy, Training=barbell, Recovery=leaf.</li>
+      <li>"NEXT NEARBY" two-line card (tiny label + big name) for all rides — glanceable on a bike mount.</li>
+      <li>Mode persists the instant a chip is tapped (sticky default + warms the preferred mode at next sync).</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>
