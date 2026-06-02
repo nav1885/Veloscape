@@ -16,7 +16,7 @@ async function start() {
   const host = process.env.HOST ?? '0.0.0.0';
 
   await app.listen({ port, host });
-  app.log.info(`Sherpaa backend listening on ${host}:${port}`);
+  app.log.info(`Veloscape backend listening on ${host}:${port}`);
 }
 
 start().catch(err => {

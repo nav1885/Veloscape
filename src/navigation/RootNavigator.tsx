@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { RootStackParamList } from './types';
 import { useAuthStore } from '../store/authStore';
+import { APP_SCHEME } from '../constants/config';
 
 import AuthStack from './AuthStack';
 import MainTabs from './MainTabs';
@@ -10,11 +11,11 @@ import RideStack from './RideStack';
 
 const Root = createStackNavigator<RootStackParamList>();
 
-// Deep link config — tells NavigationContainer to accept sherpaa:// URLs
+// Deep link config — tells NavigationContainer to accept veloscape:// URLs
 // so that the app resumes (not restarts) when Strava redirects back.
 const linking = {
-  prefixes: ['sherpaa://'],
-  // No screen mapping needed — we handle sherpaa://connected manually
+  prefixes: [`${APP_SCHEME}://`],
+  // No screen mapping needed — we handle veloscape://connected manually
   // via Linking.addEventListener in StravaConnectWrapper.
   config: { screens: {} },
 };

@@ -15,7 +15,7 @@ import ConnectedScreen from '../components/ConnectedScreen';
 
 import { useAuthStore } from '../store/authStore';
 import { syncStarredSegments, SyncProgress } from '../services/segmentSync';
-import { API_URL, STRAVA_CLIENT_ID } from '../constants/config';
+import { API_URL, APP_SCHEME, STRAVA_CLIENT_ID } from '../constants/config';
 import { sql } from 'drizzle-orm';
 import { db } from '../db/client';
 import { riders } from '../db/schema';
@@ -63,7 +63,7 @@ function CarouselWrapper() {
 
 // ─── StravaConnect ────────────────────────────────────────────────────────────
 // Opens the Strava auth URL in a browser. The backend handles the code exchange
-// and redirects back to sherpaa://connected?jwt=...&accessToken=... etc.
+// and redirects back to veloscape://connected?jwt=...&accessToken=... etc.
 
 function StravaConnectWrapper() {
   const navigation = useNavigation<AuthNav>();
@@ -74,7 +74,7 @@ function StravaConnectWrapper() {
   // Listen for the deep link redirect from the backend
   useEffect(() => {
     function handleUrl({ url }: { url: string }) {
-      if (!url.startsWith('sherpaa://connected')) return;
+      if (!url.startsWith(`${APP_SCHEME}://connected`)) return;
 
       const parsed = new URL(url);
       const error = parsed.searchParams.get('error');

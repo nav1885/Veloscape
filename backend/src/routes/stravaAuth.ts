@@ -4,7 +4,7 @@
  * GET  /oauth/callback
  *   Strava redirects here after the user authorizes.
  *   Exchanges the code, signs a JWT, then deep-links back to the app:
- *   sherpaa://connected?jwt=...&accessToken=...&...
+ *   veloscape://connected?jwt=...&accessToken=...&...
  *
  * POST /auth/strava/refresh
  *   Body: { refreshToken: string }
@@ -20,7 +20,7 @@ const STRAVA_CLIENT_ID = process.env.STRAVA_CLIENT_ID ?? '';
 const STRAVA_CLIENT_SECRET = process.env.STRAVA_CLIENT_SECRET ?? '';
 const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret-change-in-prod';
 const JWT_EXPIRES_IN = '90d';
-const APP_SCHEME = 'sherpaa';
+const APP_SCHEME = 'veloscape';
 
 // ─── Strava token exchange ────────────────────────────────────────────────────
 

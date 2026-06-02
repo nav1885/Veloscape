@@ -55,5 +55,31 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>app.veloscape</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>veloscape</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Veloscape uses your location to detect cycling segments and deliver coaching cues.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Veloscape tracks your location during rides to detect segments and deliver coaching cues.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Veloscape tracks your location in the background so coaching continues when your screen is off.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Veloscape uses motion data to improve speed accuracy during rides.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Veloscape connects to heart rate monitors and power meters via Bluetooth.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>audio</string>
+	</array>
 </dict>
 </plist>
