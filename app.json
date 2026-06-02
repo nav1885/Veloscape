@@ -34,7 +34,7 @@
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#01122B"
+        "backgroundColor": "#07080A"
       },
       "permissions": [
         "ACCESS_FINE_LOCATION",
