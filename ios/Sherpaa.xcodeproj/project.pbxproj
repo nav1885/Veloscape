@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		17D1AF7FE27C134BFCBE8AB4 /* libPods-sherpaainit.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C3CF68186FAB2D584B364647 /* libPods-sherpaainit.a */; };
+		17D1AF7FE27C134BFCBE8AB4 /* libPods-Sherpaa.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C3CF68186FAB2D584B364647 /* libPods-Sherpaa.a */; };
 		3D19DB0DB95F737FAD3E32FD /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 859175C7E8E42C7706EC837A /* ExpoModulesProvider.swift */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		45792258BA0F0EEAB0165230 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = EDE79878053ACAB2B19D2B2D /* PrivacyInfo.xcprivacy */; };
@@ -17,19 +17,19 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0907CA96C556F157B9ED9CBD /* Pods-sherpaainit.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-sherpaainit.release.xcconfig"; path = "Target Support Files/Pods-sherpaainit/Pods-sherpaainit.release.xcconfig"; sourceTree = "<group>"; };
-		13B07F961A680F5B00A75B9A /* sherpaainit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = sherpaainit.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = sherpaainit/Images.xcassets; sourceTree = "<group>"; };
-		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = sherpaainit/Info.plist; sourceTree = "<group>"; };
-		859175C7E8E42C7706EC837A /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-sherpaainit/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
-		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = sherpaainit/SplashScreen.storyboard; sourceTree = "<group>"; };
+		0907CA96C556F157B9ED9CBD /* Pods-Sherpaa.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Sherpaa.release.xcconfig"; path = "Target Support Files/Pods-Sherpaa/Pods-Sherpaa.release.xcconfig"; sourceTree = "<group>"; };
+		13B07F961A680F5B00A75B9A /* Sherpaa.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sherpaa.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = Sherpaa/Images.xcassets; sourceTree = "<group>"; };
+		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = Sherpaa/Info.plist; sourceTree = "<group>"; };
+		859175C7E8E42C7706EC837A /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-Sherpaa/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = Sherpaa/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		C3CF68186FAB2D584B364647 /* libPods-sherpaainit.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-sherpaainit.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C3CF68186FAB2D584B364647 /* libPods-Sherpaa.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-Sherpaa.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		EDE79878053ACAB2B19D2B2D /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = sherpaainit/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = sherpaainit/AppDelegate.swift; sourceTree = "<group>"; };
-		F11748442D0722820044C1D9 /* sherpaainit-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "sherpaainit-Bridging-Header.h"; path = "sherpaainit/sherpaainit-Bridging-Header.h"; sourceTree = "<group>"; };
-		F31CD6449EBB75171F4F95B4 /* Pods-sherpaainit.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-sherpaainit.debug.xcconfig"; path = "Target Support Files/Pods-sherpaainit/Pods-sherpaainit.debug.xcconfig"; sourceTree = "<group>"; };
+		EDE79878053ACAB2B19D2B2D /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = Sherpaa/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = Sherpaa/AppDelegate.swift; sourceTree = "<group>"; };
+		F11748442D0722820044C1D9 /* Sherpaa-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "Sherpaa-Bridging-Header.h"; path = "Sherpaa/Sherpaa-Bridging-Header.h"; sourceTree = "<group>"; };
+		F31CD6449EBB75171F4F95B4 /* Pods-Sherpaa.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Sherpaa.debug.xcconfig"; path = "Target Support Files/Pods-Sherpaa/Pods-Sherpaa.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,40 +37,40 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				17D1AF7FE27C134BFCBE8AB4 /* libPods-sherpaainit.a in Frameworks */,
+				17D1AF7FE27C134BFCBE8AB4 /* libPods-Sherpaa.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		13B07FAE1A68108700A75B9A /* sherpaainit */ = {
+		13B07FAE1A68108700A75B9A /* Sherpaa */ = {
 			isa = PBXGroup;
 			children = (
 				F11748412D0307B40044C1D9 /* AppDelegate.swift */,
-				F11748442D0722820044C1D9 /* sherpaainit-Bridging-Header.h */,
+				F11748442D0722820044C1D9 /* Sherpaa-Bridging-Header.h */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
 				EDE79878053ACAB2B19D2B2D /* PrivacyInfo.xcprivacy */,
 			);
-			name = sherpaainit;
+			name = Sherpaa;
 			sourceTree = "<group>";
 		};
-		1EB60A34DE78FD4C2BFE5DC5 /* sherpaainit */ = {
+		1EB60A34DE78FD4C2BFE5DC5 /* Sherpaa */ = {
 			isa = PBXGroup;
 			children = (
 				859175C7E8E42C7706EC837A /* ExpoModulesProvider.swift */,
 			);
-			name = sherpaainit;
+			name = Sherpaa;
 			sourceTree = "<group>";
 		};
 		2D16E6871FA4F8E400B85C8A /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				C3CF68186FAB2D584B364647 /* libPods-sherpaainit.a */,
+				C3CF68186FAB2D584B364647 /* libPods-Sherpaa.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -78,8 +78,8 @@
 		6BB931E00CAEB29921749179 /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				F31CD6449EBB75171F4F95B4 /* Pods-sherpaainit.debug.xcconfig */,
-				0907CA96C556F157B9ED9CBD /* Pods-sherpaainit.release.xcconfig */,
+				F31CD6449EBB75171F4F95B4 /* Pods-Sherpaa.debug.xcconfig */,
+				0907CA96C556F157B9ED9CBD /* Pods-Sherpaa.release.xcconfig */,
 			);
 			name = Pods;
 			path = Pods;
@@ -95,7 +95,7 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
-				13B07FAE1A68108700A75B9A /* sherpaainit */,
+				13B07FAE1A68108700A75B9A /* Sherpaa */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
@@ -110,7 +110,7 @@
 		83CBBA001A601CBA00E9B192 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				13B07F961A680F5B00A75B9A /* sherpaainit.app */,
+				13B07F961A680F5B00A75B9A /* Sherpaa.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -121,13 +121,13 @@
 				BB2F792C24A3F905000567C9 /* Expo.plist */,
 			);
 			name = Supporting;
-			path = sherpaainit/Supporting;
+			path = Sherpaa/Supporting;
 			sourceTree = "<group>";
 		};
 		E799CB1113FCAA6D4A475DAF /* ExpoModulesProviders */ = {
 			isa = PBXGroup;
 			children = (
-				1EB60A34DE78FD4C2BFE5DC5 /* sherpaainit */,
+				1EB60A34DE78FD4C2BFE5DC5 /* Sherpaa */,
 			);
 			name = ExpoModulesProviders;
 			sourceTree = "<group>";
@@ -135,9 +135,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		13B07F861A680F5B00A75B9A /* sherpaainit */ = {
+		13B07F861A680F5B00A75B9A /* Sherpaa */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "sherpaainit" */;
+			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Sherpaa" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
 				55CFD27B674112353A776D74 /* [Expo] Configure project */,
@@ -152,9 +152,9 @@
 			);
 			dependencies = (
 			);
-			name = sherpaainit;
-			productName = sherpaainit;
-			productReference = 13B07F961A680F5B00A75B9A /* sherpaainit.app */;
+			name = Sherpaa;
+			productName = Sherpaa;
+			productReference = 13B07F961A680F5B00A75B9A /* Sherpaa.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -170,7 +170,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "sherpaainit" */;
+			buildConfigurationList = 83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "Sherpaa" */;
 			compatibilityVersion = "Xcode 3.2";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -183,7 +183,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				13B07F861A680F5B00A75B9A /* sherpaainit */,
+				13B07F861A680F5B00A75B9A /* Sherpaa */,
 			);
 		};
 /* End PBXProject section */
@@ -235,7 +235,7 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-sherpaainit-checkManifestLockResult.txt",
+				"$(DERIVED_FILE_DIR)/Pods-Sherpaa-checkManifestLockResult.txt",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -248,7 +248,7 @@
 			files = (
 			);
 			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-sherpaainit/Pods-sherpaainit-frameworks.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-Sherpaa/Pods-Sherpaa-frameworks.sh",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/React-Core-prebuilt/React.framework/React",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/ReactNativeDependencies/ReactNativeDependencies.framework/ReactNativeDependencies",
 				"${PODS_XCFRAMEWORKS_BUILD_DIR}/hermes-engine/Pre-built/hermes.framework/hermes",
@@ -261,7 +261,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-sherpaainit/Pods-sherpaainit-frameworks.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Sherpaa/Pods-Sherpaa-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 		55CFD27B674112353A776D74 /* [Expo] Configure project */ = {
@@ -275,17 +275,17 @@
 			inputPaths = (
 				"$(SRCROOT)/.xcode.env",
 				"$(SRCROOT)/.xcode.env.local",
-				"$(SRCROOT)/Pods/Target Support Files/Pods-sherpaainit/expo-configure-project.sh",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-Sherpaa/expo-configure-project.sh",
 			);
 			name = "[Expo] Configure project";
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(SRCROOT)/Pods/Target Support Files/Pods-sherpaainit/ExpoModulesProvider.swift",
+				"$(SRCROOT)/Pods/Target Support Files/Pods-Sherpaa/ExpoModulesProvider.swift",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-sherpaainit/expo-configure-project.sh\"\n";
+			shellScript = "# This script configures Expo modules and generates the modules provider file.\nbash -l -c \"./Pods/Target\\ Support\\ Files/Pods-Sherpaa/expo-configure-project.sh\"\n";
 		};
 		800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -293,7 +293,7 @@
 			files = (
 			);
 			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-sherpaainit/Pods-sherpaainit-resources.sh",
+				"${PODS_ROOT}/Target Support Files/Pods-Sherpaa/Pods-Sherpaa-resources.sh",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXApplication/ExpoApplication_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/EXConstants.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXConstants/ExpoConstants_privacy.bundle",
@@ -318,7 +318,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-sherpaainit/Pods-sherpaainit-resources.sh\"\n";
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Sherpaa/Pods-Sherpaa-resources.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
@@ -338,7 +338,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = F31CD6449EBB75171F4F95B4 /* Pods-sherpaainit.debug.xcconfig */;
+			baseConfigurationReference = F31CD6449EBB75171F4F95B4 /* Pods-Sherpaa.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -348,7 +348,7 @@
 					"$(inherited)",
 					"FB_SONARKIT_ENABLED=1",
 				);
-				INFOPLIST_FILE = sherpaainit/Info.plist;
+				INFOPLIST_FILE = Sherpaa/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -362,8 +362,8 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_DEBUG";
 				PRODUCT_BUNDLE_IDENTIFIER = com.sherpaa.app;
-				PRODUCT_NAME = sherpaainit;
-				SWIFT_OBJC_BRIDGING_HEADER = "sherpaainit/sherpaainit-Bridging-Header.h";
+				PRODUCT_NAME = Sherpaa;
+				SWIFT_OBJC_BRIDGING_HEADER = "Sherpaa/Sherpaa-Bridging-Header.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -372,12 +372,12 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 0907CA96C556F157B9ED9CBD /* Pods-sherpaainit.release.xcconfig */;
+			baseConfigurationReference = 0907CA96C556F157B9ED9CBD /* Pods-Sherpaa.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 1;
-				INFOPLIST_FILE = sherpaainit/Info.plist;
+				INFOPLIST_FILE = Sherpaa/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -391,8 +391,8 @@
 				);
 				OTHER_SWIFT_FLAGS = "$(inherited) -D EXPO_CONFIGURATION_RELEASE";
 				PRODUCT_BUNDLE_IDENTIFIER = com.sherpaa.app;
-				PRODUCT_NAME = sherpaainit;
-				SWIFT_OBJC_BRIDGING_HEADER = "sherpaainit/sherpaainit-Bridging-Header.h";
+				PRODUCT_NAME = Sherpaa;
+				SWIFT_OBJC_BRIDGING_HEADER = "Sherpaa/Sherpaa-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
@@ -519,7 +519,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "sherpaainit" */ = {
+		13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "Sherpaa" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				13B07F941A680F5B00A75B9A /* Debug */,
@@ -528,7 +528,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "sherpaainit" */ = {
+		83CBB9FA1A601CBA00E9B192 /* Build configuration list for PBXProject "Sherpaa" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				83CBBA201A601CBA00E9B192 /* Debug */,
