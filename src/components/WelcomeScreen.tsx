@@ -29,7 +29,7 @@ export default function WelcomeScreen({ onGetStarted, onSignIn }: Props) {
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.content}>
           {/* TODO: replace with <Image> of sherpaa_logo.png if switching to image logo */}
-          <Text style={styles.logo}>Sherpaa</Text>
+          <Text style={styles.logo}>Veloscape</Text>
           <Text style={styles.tagline}>The only coach who was there last time.</Text>
 
           <TouchableOpacity style={styles.btnGold} onPress={onGetStarted} activeOpacity={0.85}>

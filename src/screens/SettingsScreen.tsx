@@ -42,7 +42,7 @@ export default function SettingsScreen() {
   const [busy, setBusy] = useState(false);
 
   function handleSignOut() {
-    Alert.alert('Sign out?', 'You will need to reconnect Strava to continue using Sherpaa.', [
+    Alert.alert('Sign out?', 'You will need to reconnect Strava to continue using Veloscape.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Sign out', style: 'destructive', onPress: () => clearAuth() },
     ]);
@@ -69,7 +69,7 @@ export default function SettingsScreen() {
 
   function handleTestVoice() {
     stopSpeech();
-    speak('This is your Sherpaa coach. Two segments ahead. Ride strong.');
+    speak('This is your Veloscape coach. Two segments ahead. Ride strong.');
   }
 
   return (
@@ -131,15 +131,15 @@ export default function SettingsScreen() {
           />
         </Section>
 
-        <Section title="Strava" subtitle="Sherpaa coaches. Your watch records.">
+        <Section title="Strava" subtitle="Veloscape coaches. Your watch records.">
           <Row label="Last segment sync" value={formatRelative(lastSegmentSyncAt)} />
           <Row label="Last activity fetch" value={formatRelative(lastActivityFetchAt)} />
           <DisclosureRow label="What gets synced">
-            When your watch uploads to Strava, Sherpaa pulls the authoritative
+            When your watch uploads to Strava, Veloscape pulls the authoritative
             distance, elevation, heart rate, and segment effort times. Phone
             GPS is only used for live cue timing during the ride.{'\n\n'}
             If you ride without a head unit, your rides will stay phone-recorded.
-            Sherpaa still coaches and debriefs you the same way.
+            Veloscape still coaches and debriefs you the same way.
           </DisclosureRow>
           <Pressable
             label="Reconnect Strava"
@@ -155,7 +155,7 @@ export default function SettingsScreen() {
           />
         </Section>
 
-        <Text style={styles.footer}>Sherpaa · v0.4 · {new Date().getFullYear()}</Text>
+        <Text style={styles.footer}>Veloscape · v0.4 · {new Date().getFullYear()}</Text>
       </ScrollView>
     </SafeAreaView>
   );

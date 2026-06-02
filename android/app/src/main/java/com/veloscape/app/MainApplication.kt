@@ -1,4 +1,4 @@
-package com.sherpaainit
+package com.veloscape.app
 
 import android.app.Application
 import android.content.res.Configuration

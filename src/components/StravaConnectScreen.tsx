@@ -31,7 +31,7 @@ export default function StravaConnectScreen({ state, errorMessage, onConnect, on
 
         <Text style={styles.headline}>Connect Strava</Text>
         <Text style={styles.sub}>
-          Sherpaa reads your starred segments to build your coaching plan.
+          Veloscape reads your starred segments to build your coaching plan.
           We never post or modify your Strava data.
         </Text>
 

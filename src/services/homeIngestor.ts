@@ -3,7 +3,7 @@
  *
  * Pulls the rider's recent Strava activities and ensures every one of them
  * exists as a `rides` row, so Home can present a unified feed regardless of
- * whether Sherpaa coached the ride.
+ * whether Veloscape coached the ride.
  *
  * Public API:
  *   - ingestRecentActivities(accessToken, riderId, opts?)

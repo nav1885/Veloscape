@@ -1,4 +1,4 @@
-// Sherpaa design tokens — single source of truth
+// Veloscape design tokens — single source of truth
 // All components must import colors from here, not hardcode hex values
 
 export const colors = {

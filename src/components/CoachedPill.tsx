@@ -1,9 +1,9 @@
 /**
  * CoachedPill — gold pill that sits next to SyncStateBadge.
  *
- * Indicates a ride was coached live by Sherpaa (cue log exists for the ride).
+ * Indicates a ride was coached live by Veloscape (cue log exists for the ride).
  * Orthogonal to SyncStateBadge: provenance (where the data came from) and
- * coaching (whether Sherpaa coached the ride) are independent axes.
+ * coaching (whether Veloscape coached the ride) are independent axes.
  *
  * Spec: docs/design/UnifiedHomeFeed_DesignSpec.md → "CoachedPill — Component Spec"
  *
@@ -27,7 +27,7 @@ export function CoachedPill({ size = 'sm', style }: CoachedPillProps) {
     <View
       style={[styles.pill, s.container, style]}
       accessibilityRole="text"
-      accessibilityLabel="Coached by Sherpaa"
+      accessibilityLabel="Coached by Veloscape"
     >
       {/* TODO: swap emoji glyph for a proper SVG mic icon during icon-system pass */}
       <Text style={[s.icon]} allowFontScaling={false}>

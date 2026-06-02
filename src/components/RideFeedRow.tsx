@@ -136,7 +136,7 @@ function buildA11yLabel(p: {
     formatDurationSpoken(p.durationSec),
     syncLabels[p.syncState] + '.',
   ];
-  if (p.coachedBySherpaa) parts.push('Coached by Sherpaa.');
+  if (p.coachedBySherpaa) parts.push('Coached by Veloscape.');
   parts.push('Tap to view details.');
   return parts.join(', ');
 }

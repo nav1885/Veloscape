@@ -98,7 +98,7 @@ export async function exchangeStravaCode(code: string, redirectUri: string): Pro
 }
 
 // ─── Step 3 (optional): Refresh an expired Strava access_token ───────────────
-// Requires a valid Sherpaa JWT — the backend will 401 otherwise.
+// Requires a valid Veloscape JWT — the backend will 401 otherwise.
 
 export async function refreshStravaToken(
   refreshToken: string,

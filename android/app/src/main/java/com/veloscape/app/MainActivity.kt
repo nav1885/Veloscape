@@ -1,4 +1,4 @@
-package com.sherpaainit
+package com.veloscape.app
 
 import android.os.Build
 import android.os.Bundle

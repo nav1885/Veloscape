@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Sherpaa",
-    "slug": "sherpaa",
+    "name": "Veloscape",
+    "slug": "veloscape",
     "scheme": "sherpaa",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -13,16 +13,16 @@
       "backgroundColor": "#1C1C1E"
     },
     "ios": {
-      "bundleIdentifier": "com.sherpaa.app",
+      "bundleIdentifier": "app.veloscape",
       "buildNumber": "1",
       "supportsTablet": false,
       "deploymentTarget": "16.0",
       "infoPlist": {
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Sherpaa tracks your location during rides to detect segments and deliver coaching cues.",
-        "NSLocationWhenInUseUsageDescription": "Sherpaa uses your location to detect cycling segments and deliver coaching cues.",
-        "NSLocationAlwaysUsageDescription": "Sherpaa tracks your location in the background so coaching continues when your screen is off.",
-        "NSMotionUsageDescription": "Sherpaa uses motion data to improve speed accuracy during rides.",
-        "NSBluetoothAlwaysUsageDescription": "Sherpaa connects to heart rate monitors and power meters via Bluetooth.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Veloscape tracks your location during rides to detect segments and deliver coaching cues.",
+        "NSLocationWhenInUseUsageDescription": "Veloscape uses your location to detect cycling segments and deliver coaching cues.",
+        "NSLocationAlwaysUsageDescription": "Veloscape tracks your location in the background so coaching continues when your screen is off.",
+        "NSMotionUsageDescription": "Veloscape uses motion data to improve speed accuracy during rides.",
+        "NSBluetoothAlwaysUsageDescription": "Veloscape connects to heart rate monitors and power meters via Bluetooth.",
         "UIBackgroundModes": [
           "location",
           "audio"
@@ -30,7 +30,7 @@
       }
     },
     "android": {
-      "package": "com.sherpaa.app",
+      "package": "app.veloscape",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
@@ -59,7 +59,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Sherpaa tracks your location during rides to detect segments and deliver coaching cues.",
+          "locationAlwaysAndWhenInUsePermission": "Veloscape tracks your location during rides to detect segments and deliver coaching cues.",
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }
