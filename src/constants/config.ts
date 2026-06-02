@@ -10,4 +10,4 @@ export const API_URL: string =
   process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
 
 // Deep-link scheme registered in app.json.  Used by expo-auth-session.
-export const APP_SCHEME = 'sherpaa';
+export const APP_SCHEME = 'veloscape';

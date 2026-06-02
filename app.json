@@ -2,7 +2,7 @@
   "expo": {
     "name": "Veloscape",
     "slug": "veloscape",
-    "scheme": "sherpaa",
+    "scheme": "veloscape",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
