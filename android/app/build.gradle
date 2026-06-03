@@ -97,6 +97,13 @@ android {
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
+    // Upload-signing creds live in android/keystore.properties (gitignored). When absent
+    // (e.g. CI or a fresh clone) the release build falls back to the debug key.
+    def keystorePropsFile = rootProject.file("keystore.properties")
+    def keystoreProps = new Properties()
+    if (keystorePropsFile.exists()) {
+        keystoreProps.load(new FileInputStream(keystorePropsFile))
+    }
     signingConfigs {
         debug {
             storeFile file('debug.keystore')
@@ -104,15 +111,23 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            if (keystoreProps['VELOSCAPE_UPLOAD_STORE_FILE']) {
+                storeFile file(keystoreProps['VELOSCAPE_UPLOAD_STORE_FILE'])
+                storePassword keystoreProps['VELOSCAPE_UPLOAD_STORE_PASSWORD']
+                keyAlias keystoreProps['VELOSCAPE_UPLOAD_KEY_ALIAS']
+                keyPassword keystoreProps['VELOSCAPE_UPLOAD_KEY_PASSWORD']
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // Release signs with the upload key when keystore.properties is present,
+            // otherwise falls back to the debug key (non-distributable).
+            signingConfig keystoreProps['VELOSCAPE_UPLOAD_STORE_FILE'] ? signingConfigs.release : signingConfigs.debug
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds
