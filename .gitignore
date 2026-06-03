@@ -52,3 +52,8 @@ backend/.env
 # Android upload signing (never commit)
 android/keystore.properties
 keystore.properties
+
+# Release automation secrets (never commit — repo is public)
+scripts/release.env
+google-play-service-account.json
+*.p8
