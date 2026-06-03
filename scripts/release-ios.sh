@@ -15,7 +15,12 @@ next=$(( cur + 1 ))
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $next" "$PLIST"
 echo "▶ iOS build number $cur → $next"
 
-rm -rf ios/build ios/build-device
+# Clean only the archive/export outputs — never ios/build/generated (RN codegen).
+rm -rf ios/build/Veloscape.xcarchive ios/build/ipa ios/build-device
+# Always re-pod so RN codegen under ios/build/generated is complete & current
+# (the build consumes those files as inputs; a partial/missing set fails the archive).
+echo "▶ pod install (refresh RN codegen)…"
+( cd ios && LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 pod install >/dev/null )
 
 cat > /tmp/VeloscapeExportOptions.plist <<PLISTEOF
 <?xml version="1.0" encoding="UTF-8"?>
