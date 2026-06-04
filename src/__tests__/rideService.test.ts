@@ -68,7 +68,9 @@ describe('generateDebrief', () => {
 
   it('handles empty segments', () => {
     const text = generateDebrief([], 3600, 25);
-    expect(text).toContain('0 of 0');
+    // Empty ride → distance/time summary (intentionally no "N of M segments" line)
+    expect(text).toContain('Ride complete');
+    expect(text).toContain('minutes');
   });
 
   it('handles first efforts (no PR reference)', () => {

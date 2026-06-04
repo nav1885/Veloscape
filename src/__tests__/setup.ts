@@ -15,11 +15,33 @@ jest.mock('expo-speech', () => ({
 // expo-location
 jest.mock('expo-location', () => ({
   requestForegroundPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
+  requestBackgroundPermissionsAsync: jest.fn().mockResolvedValue({ status: 'granted' }),
   watchPositionAsync: jest.fn().mockResolvedValue({ remove: jest.fn() }),
+  startLocationUpdatesAsync: jest.fn().mockResolvedValue(undefined),
+  stopLocationUpdatesAsync: jest.fn().mockResolvedValue(undefined),
   Accuracy: {
     BestForNavigation: 6,
     High: 4,
   },
+}));
+
+// expo-task-manager (defineTask runs at module load in the ride engine)
+jest.mock('expo-task-manager', () => ({
+  defineTask: jest.fn(),
+  isTaskRegisteredAsync: jest.fn().mockResolvedValue(false),
+}));
+
+// expo-keep-awake
+jest.mock('expo-keep-awake', () => ({
+  activateKeepAwakeAsync: jest.fn().mockResolvedValue(undefined),
+  deactivateKeepAwake: jest.fn(),
+}));
+
+// expo-av (background audio session)
+jest.mock('expo-av', () => ({
+  Audio: { setAudioModeAsync: jest.fn().mockResolvedValue(undefined) },
+  InterruptionModeIOS: { DuckOthers: 1 },
+  InterruptionModeAndroid: { DuckOthers: 1 },
 }));
 
 // expo-secure-store

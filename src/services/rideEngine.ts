@@ -7,12 +7,16 @@
  */
 
 import * as Location from 'expo-location';
+import * as TaskManager from 'expo-task-manager';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from 'expo-av';
 import { useRideStore } from '../store/rideStore';
 import { useSegmentStore } from '../store/segmentStore';
 import { Segment } from '../store/segmentStore';
 import { getCueForSegment } from './cueService';
 import { speak, stop as stopTTS } from './ttsService';
 import { haversineMetres, decodePolyline, LatLng } from '../utils/polyline';
+import { segmentPhase, SEGMENT_END_RADIUS_M } from '../utils/segmentDetection';
 import { spokenDistanceMeters } from '../utils/units';
 import { GoalMode } from '../types/goalMode';
 import { CueType } from '../store/rideStore';
@@ -33,14 +37,26 @@ interface SegmentTracker {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const APPROACH_RADIUS_M = 500;
-const SEGMENT_START_RADIUS_M = 40;
-const SEGMENT_END_RADIUS_M = 40;
 const GPS_INTERVAL_MS = 1000;
+const LOCATION_TASK = 'veloscape-ride-location';
+const KEEP_AWAKE_TAG = 'veloscape-ride';
+
+// Background location task — MUST be defined at module scope so it is registered
+// whenever the JS bundle loads (incl. headless restarts). Each fix is fed into the
+// same detection pipeline the foreground path uses. With the Android foreground
+// service keeping the process alive, module state below stays valid mid-ride.
+TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
+  if (error) {
+    console.warn('[rideEngine] location task error:', error.message);
+    return;
+  }
+  const { locations } = (data as { locations?: Location.LocationObject[] }) ?? {};
+  if (!locations?.length) return;
+  for (const loc of locations) onLocationUpdate(loc);
+});
 
 // ─── Module state ────────────────────────────────────────────────────────────
 
-let _locationSub: Location.LocationSubscription | null = null;
 let _timerInterval: ReturnType<typeof setInterval> | null = null;
 let _trackers: SegmentTracker[] = [];
 let _activeTracker: SegmentTracker | null = null;
@@ -55,9 +71,25 @@ export async function startRideEngine(
   segmentIds: string[],
   goalMode: GoalMode,
 ): Promise<boolean> {
-  // Request permissions
-  const { status } = await Location.requestForegroundPermissionsAsync();
-  if (status !== 'granted') return false;
+  // Permissions: foreground is required; background lets tracking continue with the
+  // screen off / app backgrounded (the normal riding case). Background is best-effort.
+  const fg = await Location.requestForegroundPermissionsAsync();
+  if (fg.status !== 'granted') return false;
+  try { await Location.requestBackgroundPermissionsAsync(); } catch { /* FG still works */ }
+
+  // Keep audio playing in background / silent mode so cues are audible screen-off.
+  try {
+    await Audio.setAudioModeAsync({
+      staysActiveInBackground: true,
+      playsInSilentModeIOS: true,
+      interruptionModeIOS: InterruptionModeIOS.DuckOthers,
+      interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+      shouldDuckAndroid: true,
+    });
+  } catch { /* non-fatal */ }
+
+  // Belt-and-suspenders for the screen-on / mounted case.
+  activateKeepAwakeAsync(KEEP_AWAKE_TAG).catch(() => {});
 
   _goalMode = goalMode;
   _prevPosition = null;
@@ -90,15 +122,20 @@ export async function startRideEngine(
   speak(`GPS locked. ${segCount} segment${segCount !== 1 ? 's' : ''} loaded. Goal: ${goalMode === 'pr' ? 'P R' : goalMode}. Let's go.`);
   store.setAudioActive(true);
 
-  // Start GPS tracking
-  _locationSub = await Location.watchPositionAsync(
-    {
-      accuracy: Location.Accuracy.BestForNavigation,
-      timeInterval: GPS_INTERVAL_MS,
-      distanceInterval: 0,
+  // Start background-capable GPS via a foreground service so tracking continues
+  // when the screen locks or the app is backgrounded mid-ride.
+  await Location.startLocationUpdatesAsync(LOCATION_TASK, {
+    accuracy: Location.Accuracy.BestForNavigation,
+    timeInterval: GPS_INTERVAL_MS,
+    distanceInterval: 0,
+    pausesUpdatesAutomatically: false,
+    showsBackgroundLocationIndicator: true,
+    foregroundService: {
+      notificationTitle: 'Veloscape — ride in progress',
+      notificationBody: 'Tracking your route and coaching your segments.',
+      notificationColor: '#F5C518',
     },
-    onLocationUpdate,
-  );
+  });
 
   // Elapsed time ticker
   _timerInterval = setInterval(updateElapsedTime, 1000);
@@ -106,15 +143,19 @@ export async function startRideEngine(
   return true;
 }
 
-export function stopRideEngine(): void {
-  if (_locationSub) {
-    _locationSub.remove();
-    _locationSub = null;
+export async function stopRideEngine(): Promise<void> {
+  try {
+    if (await TaskManager.isTaskRegisteredAsync(LOCATION_TASK)) {
+      await Location.stopLocationUpdatesAsync(LOCATION_TASK);
+    }
+  } catch (e) {
+    console.warn('[rideEngine] stop location updates failed:', e);
   }
   if (_timerInterval) {
     clearInterval(_timerInterval);
     _timerInterval = null;
   }
+  deactivateKeepAwake(KEEP_AWAKE_TAG);
   stopTTS();
   _trackers = [];
   _activeTracker = null;
@@ -172,18 +213,18 @@ function handleBetweenSegments(pos: LatLng): void {
     const completed = store.completedSegments.some(c => c.segmentId === tracker.segment.id);
     if (completed) continue;
 
-    const distToStart = haversineMetres(pos, tracker.startCoord);
+    const phase = segmentPhase(haversineMetres(pos, tracker.startCoord));
 
-    // Approach cue at 500m
-    if (!tracker.approachCueFired && distToStart < APPROACH_RADIUS_M && distToStart > SEGMENT_START_RADIUS_M) {
+    // Approach cue (once) on the run-in to the segment
+    if (phase === 'approach' && !tracker.approachCueFired) {
       tracker.approachCueFired = true;
       fireApproachCue(tracker);
     }
 
-    // Segment start detection
-    if (distToStart < SEGMENT_START_RADIUS_M) {
+    // Segment start detection — only one segment active at a time
+    if (phase === 'enter') {
       enterSegment(tracker);
-      return; // only one segment active at a time
+      return;
     }
   }
 }
