@@ -43,7 +43,7 @@ import { db } from '../db/client';
 import { rides } from '../db/schema';
 import { eq } from 'drizzle-orm';
 
-import InRideScreen from '../components/InRideScreen';
+import InRideScreen, { BoardSegment } from '../components/InRideScreen';
 import SegmentResultScreen from '../components/SegmentResultScreen';
 import PostRideSummaryScreen from '../components/PostRideSummaryScreen';
 import PaywallScreen from '../components/PaywallScreen';
@@ -65,9 +65,10 @@ export function InRideScreenWrapper() {
   const gpsLocked = useRideStore((s) => s.gpsLocked);
   const distanceKm = useRideStore((s) => s.distanceKm);
   const audioActive = useRideStore((s) => s.audioActive);
-  const nextSegmentId = useRideStore((s) => s.nextSegmentId);
   const rideStartedAt = useRideStore((s) => s.rideStartedAt);
   const currentSegment = useRideStore((s) => s.currentSegment);
+  const routeSegmentIds = useRideStore((s) => s.routeSegmentIds);
+  const completedSegments = useRideStore((s) => s.completedSegments);
   const starredSegments = useSegmentStore((s) => s.starredSegments);
 
   const [elapsedTime, setElapsedTime] = useState('0:00:00');
@@ -107,15 +108,6 @@ export function InRideScreenWrapper() {
     return () => clearInterval(tick);
   }, [rideStartedAt]);
 
-  // Derive next segment info for UI
-  const nextSegment = useMemo(() => {
-    if (!nextSegmentId) return undefined;
-    const seg = starredSegments.find(s => s.id === nextSegmentId);
-    if (!seg || !currentPosition) return seg ? { name: seg.name, distanceKm: 0 } : undefined;
-    const distM = haversineMetres(currentPosition, { lat: seg.startLat, lng: seg.startLng });
-    return { name: seg.name, distanceKm: Math.round(distM / 100) / 10 };
-  }, [nextSegmentId, currentPosition, starredSegments]);
-
   function handleEndRide() {
     stopRideEngine();
     const store = useRideStore.getState();
@@ -136,20 +128,51 @@ export function InRideScreenWrapper() {
 
   if (!segmentIds?.length || !goalMode) return null;
 
-  // Active-segment overlay data: the store sets name='' (engine has no name there),
-  // so resolve it from the starred segments by id.
-  const activeSegment =
-    currentSegment && currentSegment.state === 'active'
-      ? {
-          name:
-            starredSegments.find((s) => s.id === currentSegment.id)?.name ??
-            currentSegment.name ??
-            'Segment',
+  // Build the in-ride segment board: every segment on the ride, in order, tagged
+  // done / active / upcoming, with the data each state needs (deltas, live timer,
+  // distance-away, plus the segment's own stats: distance, grade, elevation, PR).
+  const board: BoardSegment[] = useMemo(() => {
+    const segById = (id: string) => starredSegments.find((s) => s.id === id);
+    return routeSegmentIds.map((id) => {
+      const seg = segById(id);
+      const distanceM = seg?.distanceM ?? 0;
+      const elevationM = seg?.elevationM ?? 0;
+      const gradePercent = distanceM > 0 ? (elevationM / distanceM) * 100 : 0;
+      const base = {
+        id,
+        name: seg?.name ?? 'Segment',
+        distanceM,
+        elevationM,
+        gradePercent,
+        prTimeSec: seg?.bestTimeSec ?? null,
+        effortCount: seg?.effortCount ?? 0,
+      };
+      const done = completedSegments.find((c) => c.segmentId === id);
+      if (done) {
+        return {
+          ...base,
+          status: 'done' as const,
+          resultTimeSec: done.timeSec,
+          isNewPR: done.isNewPR,
+          gapToPreSeconds: done.gapToPreSeconds,
+        };
+      }
+      if (currentSegment && currentSegment.id === id && currentSegment.state === 'active') {
+        return {
+          ...base,
+          status: 'active' as const,
           elapsedTimeSec: currentSegment.elapsedTimeSec,
           progressPercent: currentSegment.progressPercent,
-          gapToPreSeconds: currentSegment.gapToPreSeconds,
-        }
-      : undefined;
+          liveGapSeconds: currentSegment.gapToPreSeconds,
+        };
+      }
+      const distanceAwayM =
+        currentPosition && seg
+          ? haversineMetres(currentPosition, { lat: seg.startLat, lng: seg.startLng })
+          : undefined;
+      return { ...base, status: 'upcoming' as const, distanceAwayM };
+    });
+  }, [routeSegmentIds, starredSegments, completedSegments, currentSegment, currentPosition]);
 
   return (
     <InRideScreen
@@ -159,8 +182,7 @@ export function InRideScreenWrapper() {
       gpsLocked={gpsLocked}
       audioActive={audioActive}
       goalMode={goalMode}
-      nextSegment={nextSegment}
-      activeSegment={activeSegment}
+      board={board}
       onEndRide={handleEndRide}
     />
   );

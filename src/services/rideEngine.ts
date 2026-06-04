@@ -226,7 +226,9 @@ export function startSimulatedRide(segmentIds: string[], goalMode: GoalMode): bo
   speak('Simulated ride. Watch the segment screen and listen for the cues.');
   store.setAudioActive(true);
 
-  const path = buildSimPath(_trackers[0]);
+  // Chain through every segment in order so the board fills out across a
+  // representative multi-segment ride (done → active → upcoming).
+  const path = _trackers.flatMap(t => buildSimPath(t));
   _timerInterval = setInterval(updateElapsedTime, 1000);
   let i = 0;
   _simInterval = setInterval(() => {
