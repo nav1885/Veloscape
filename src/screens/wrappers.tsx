@@ -17,7 +17,7 @@ import { LatLng, haversineMetres, decodePolyline } from '../utils/polyline';
 import { getCachedActivities, getActivitySummaryPolyline } from '../services/activityService';
 import { getActivityDetail } from '../services/stravaApi';
 import { upsertCachedActivityFromDetail } from '../services/homeIngestor';
-import { startRideEngine, stopRideEngine, getRideStartTime } from '../services/rideEngine';
+import { startRideEngine, startSimulatedRide, stopRideEngine, getRideStartTime } from '../services/rideEngine';
 import { saveRide, generateDebrief } from '../services/rideService';
 import {
   getOrGenerateSummary,
@@ -59,7 +59,7 @@ export function InRideScreenWrapper() {
   const route = useRoute<RouteProp<RideStackParamList, 'InRide'>>();
   // route.params may be absent if InRide is ever instantiated as the stack's
   // base route (e.g. under a PostRideSummary replay) — guard against that.
-  const { segmentIds, goalMode } = route.params ?? ({} as Partial<{ segmentIds: string[]; goalMode: GoalMode }>);
+  const { segmentIds, goalMode, simulate } = route.params ?? ({} as Partial<{ segmentIds: string[]; goalMode: GoalMode; simulate: boolean }>);
 
   const currentPosition = useRideStore((s) => s.currentPosition);
   const gpsLocked = useRideStore((s) => s.gpsLocked);
@@ -77,11 +77,16 @@ export function InRideScreenWrapper() {
     if (engineStartedRef.current || !segmentIds?.length || !goalMode) return;
     engineStartedRef.current = true;
 
-    console.log('[InRide] starting engine with', segmentIds.length, 'segments');
-    startRideEngine(segmentIds, goalMode).then(ok => {
-      if (!ok) console.warn('[InRide] GPS permission denied');
-      else console.log('[InRide] engine started');
-    });
+    if (simulate) {
+      console.log('[InRide] starting SIMULATED ride with', segmentIds.length, 'segments');
+      startSimulatedRide(segmentIds, goalMode);
+    } else {
+      console.log('[InRide] starting engine with', segmentIds.length, 'segments');
+      startRideEngine(segmentIds, goalMode).then(ok => {
+        if (!ok) console.warn('[InRide] GPS permission denied');
+        else console.log('[InRide] engine started');
+      });
+    }
 
     return () => {
       stopRideEngine();

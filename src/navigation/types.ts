@@ -22,7 +22,7 @@ export type AuthStackParamList = {
 // ─── Ride Stack (modal on top of Main tabs) ───────────────────────────────────
 
 export type RideStackParamList = {
-  InRide: { segmentIds: string[]; goalMode: GoalMode };
+  InRide: { segmentIds: string[]; goalMode: GoalMode; simulate?: boolean };
   SegmentResult: {
     segmentId: string;
     segmentName: string;

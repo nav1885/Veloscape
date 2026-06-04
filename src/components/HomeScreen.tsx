@@ -37,6 +37,7 @@ interface Props {
   onRefresh: () => void;
   onSelectMode: (mode: GoalMode) => void;
   onStartRide: () => void;
+  onSimulateRide?: () => void; // hidden: long-press Start Ride (test the cue pipeline)
   onRideTap: (rideId: string) => void;
   onAudioPress: (rideId: string) => void;
   onLoadMore: () => void;
@@ -60,6 +61,7 @@ export default function HomeScreen({
   onRefresh,
   onSelectMode,
   onStartRide,
+  onSimulateRide,
   onRideTap,
   onAudioPress,
   onLoadMore,
@@ -186,6 +188,8 @@ export default function HomeScreen({
         <TouchableOpacity
           style={[styles.startBtn, !canStartRideDirectly && styles.startBtnDisabled]}
           onPress={onStartRide}
+          onLongPress={onSimulateRide}
+          delayLongPress={650}
           disabled={!canStartRideDirectly}
           activeOpacity={0.85}
           accessibilityRole="button"

@@ -58,6 +58,7 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
 // ─── Module state ────────────────────────────────────────────────────────────
 
 let _timerInterval: ReturnType<typeof setInterval> | null = null;
+let _simInterval: ReturnType<typeof setInterval> | null = null;
 let _trackers: SegmentTracker[] = [];
 let _activeTracker: SegmentTracker | null = null;
 let _goalMode: GoalMode = 'training';
@@ -155,11 +156,95 @@ export async function stopRideEngine(): Promise<void> {
     clearInterval(_timerInterval);
     _timerInterval = null;
   }
+  if (_simInterval) {
+    clearInterval(_simInterval);
+    _simInterval = null;
+  }
   deactivateKeepAwake(KEEP_AWAKE_TAG);
   stopTTS();
   _trackers = [];
   _activeTracker = null;
   _prevPosition = null;
+}
+
+// ─── Simulated ride (Easter egg: long-press Start Ride) ──────────────────────
+// Feeds a synthetic GPS track through the SAME detection pipeline so you can
+// see the segment screen + hear every cue without a real ride. Foreground only —
+// this verifies detection/cues/UI, NOT the background-location fix.
+
+function buildSimPath(t: SegmentTracker): LatLng[] {
+  const S = t.startCoord;
+  const E = t.endCoord;
+  const pts: LatLng[] = [];
+  // Approach: ~650m "south" of the start, stepping in (crosses 500m approach + 40m enter).
+  const approach = { lat: S.lat - 650 / 111320, lng: S.lng };
+  const N = 14;
+  for (let k = 0; k <= N; k++) {
+    pts.push({
+      lat: approach.lat + (S.lat - approach.lat) * (k / N),
+      lng: approach.lng + (S.lng - approach.lng) * (k / N),
+    });
+  }
+  // Through the segment: follow the real polyline if we have it, else interpolate S→E.
+  if (t.polylinePoints && t.polylinePoints.length > 1) {
+    pts.push(...t.polylinePoints);
+  } else {
+    const M = 16;
+    for (let k = 1; k <= M; k++) {
+      pts.push({ lat: S.lat + (E.lat - S.lat) * (k / M), lng: S.lng + (E.lng - S.lng) * (k / M) });
+    }
+  }
+  return pts;
+}
+
+export function startSimulatedRide(segmentIds: string[], goalMode: GoalMode): boolean {
+  _goalMode = goalMode;
+  _prevPosition = null;
+  _totalDistanceM = 0;
+  _startTimeMs = Date.now();
+  _activeTracker = null;
+
+  const allSegments = useSegmentStore.getState().starredSegments;
+  _trackers = segmentIds
+    .map(id => allSegments.find(s => s.id === id))
+    .filter((s): s is Segment => s !== undefined)
+    .map(seg => ({
+      segment: seg,
+      startCoord: { lat: seg.startLat, lng: seg.startLng },
+      endCoord: { lat: seg.endLat, lng: seg.endLng },
+      polylinePoints: seg.polyline ? decodePolyline(seg.polyline) : null,
+      distanceM: seg.distanceM,
+      approachCueFired: false,
+      startCueFired: false,
+      enteredAt: null,
+      checkpointsFired: new Set<number>(),
+    }));
+  if (!_trackers.length) return false;
+
+  const store = useRideStore.getState();
+  store.startRide(goalMode, segmentIds);
+  speak('Simulated ride. Watch the segment screen and listen for the cues.');
+  store.setAudioActive(true);
+
+  const path = buildSimPath(_trackers[0]);
+  _timerInterval = setInterval(updateElapsedTime, 1000);
+  let i = 0;
+  _simInterval = setInterval(() => {
+    if (i >= path.length) {
+      if (_simInterval) { clearInterval(_simInterval); _simInterval = null; }
+      return;
+    }
+    const p = path[i++];
+    onLocationUpdate({
+      coords: {
+        latitude: p.lat, longitude: p.lng, accuracy: 5, speed: 8,
+        altitude: 0, altitudeAccuracy: 5, heading: 0,
+      },
+      timestamp: Date.now(),
+    } as Location.LocationObject);
+  }, 250);
+
+  return true;
 }
 
 // ─── GPS callback ────────────────────────────────────────────────────────────

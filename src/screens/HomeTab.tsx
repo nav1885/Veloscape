@@ -285,6 +285,18 @@ export default function HomeTab() {
     });
   };
 
+  // Hidden test affordance: long-press Start Ride → drive a synthetic GPS track
+  // through the engine (verifies detection + cues + segment screen; foreground only).
+  const handleSimulateRide = async () => {
+    const segs = await loadStarredSegments();
+    if (!segs.length) return;
+    setStarredSegments(segs);
+    navigation.navigate('Ride', {
+      screen: 'InRide',
+      params: { segmentIds: segs.map((s) => s.id), goalMode: lastGoalMode, simulate: true },
+    });
+  };
+
   const firstName = rider?.name.split(' ')[0] ?? 'Rider';
 
   const feedAudioState = (rideId: string): AudioButtonState => {
@@ -311,6 +323,7 @@ export default function HomeTab() {
       onRefresh={handleRefresh}
       onSelectMode={setLastGoalMode}
       onStartRide={handleStartRide}
+      onSimulateRide={handleSimulateRide}
       onRideTap={(rideId) =>
         navigation.navigate('Ride', { screen: 'PostRideSummary', params: { rideId } })
       }
