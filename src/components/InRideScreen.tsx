@@ -4,11 +4,19 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../constants/colors';
 import { distanceUnit, speedUnit, formatDistanceKm, formatSpeedKmh } from '../utils/units';
 import { GoalMode, GOAL_LABELS } from '../types/goalMode';
+import SegmentActiveOverlay from './SegmentActiveOverlay';
 // TODO: implement 2-second hold with LongPressGestureHandler from react-native-gesture-handler
 
 interface NextSegment {
   name: string;
   distanceKm: number;
+}
+
+interface ActiveSegment {
+  name: string;
+  elapsedTimeSec: number;
+  progressPercent: number;
+  gapToPreSeconds: number;
 }
 
 interface Props {
@@ -21,6 +29,7 @@ interface Props {
   audioActive: boolean;
   goalMode: GoalMode;        // shown as a persistent HUD chip (esp. for quiet Recovery)
   nextSegment?: NextSegment; // undefined when no more segments ahead
+  activeSegment?: ActiveSegment; // present while inside a segment → shows the overlay
   onEndRide: () => void;     // called after 2-second hold confirmed
 }
 
@@ -34,8 +43,14 @@ export default function InRideScreen({
   audioActive,
   goalMode,
   nextSegment,
+  activeSegment,
   onEndRide,
 }: Props) {
+  const [overlayDismissed, setOverlayDismissed] = React.useState(false);
+  // Re-show the overlay each time a new segment becomes active.
+  React.useEffect(() => {
+    if (activeSegment) setOverlayDismissed(false);
+  }, [activeSegment?.name]);
   return (
     <SafeAreaView style={styles.container}>
 
@@ -114,6 +129,19 @@ export default function InRideScreen({
       <TouchableOpacity style={styles.endRideBtn} onLongPress={onEndRide} delayLongPress={2000} activeOpacity={0.7}>
         <Text style={styles.endRideText}>■  End Ride</Text>
       </TouchableOpacity>
+
+      {/* Segment-active overlay — shows while inside a segment */}
+      {activeSegment && !overlayDismissed && (
+        <SegmentActiveOverlay
+          segmentName={activeSegment.name}
+          elapsedTimeSec={activeSegment.elapsedTimeSec}
+          progressPercent={activeSegment.progressPercent}
+          gapToPreSeconds={activeSegment.gapToPreSeconds}
+          speedKmh={speedKmh}
+          powerWatts={powerWatts}
+          onDismiss={() => setOverlayDismissed(true)}
+        />
+      )}
 
     </SafeAreaView>
   );

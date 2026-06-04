@@ -67,6 +67,7 @@ export function InRideScreenWrapper() {
   const audioActive = useRideStore((s) => s.audioActive);
   const nextSegmentId = useRideStore((s) => s.nextSegmentId);
   const rideStartedAt = useRideStore((s) => s.rideStartedAt);
+  const currentSegment = useRideStore((s) => s.currentSegment);
   const starredSegments = useSegmentStore((s) => s.starredSegments);
 
   const [elapsedTime, setElapsedTime] = useState('0:00:00');
@@ -135,6 +136,21 @@ export function InRideScreenWrapper() {
 
   if (!segmentIds?.length || !goalMode) return null;
 
+  // Active-segment overlay data: the store sets name='' (engine has no name there),
+  // so resolve it from the starred segments by id.
+  const activeSegment =
+    currentSegment && currentSegment.state === 'active'
+      ? {
+          name:
+            starredSegments.find((s) => s.id === currentSegment.id)?.name ??
+            currentSegment.name ??
+            'Segment',
+          elapsedTimeSec: currentSegment.elapsedTimeSec,
+          progressPercent: currentSegment.progressPercent,
+          gapToPreSeconds: currentSegment.gapToPreSeconds,
+        }
+      : undefined;
+
   return (
     <InRideScreen
       elapsedTime={elapsedTime}
@@ -144,6 +160,7 @@ export function InRideScreenWrapper() {
       audioActive={audioActive}
       goalMode={goalMode}
       nextSegment={nextSegment}
+      activeSegment={activeSegment}
       onEndRide={handleEndRide}
     />
   );
