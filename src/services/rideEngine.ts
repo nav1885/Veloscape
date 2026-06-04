@@ -16,7 +16,7 @@ import { Segment } from '../store/segmentStore';
 import { getCueForSegment } from './cueService';
 import { speak, stop as stopTTS } from './ttsService';
 import { haversineMetres, decodePolyline, LatLng } from '../utils/polyline';
-import { segmentPhase, SEGMENT_END_RADIUS_M } from '../utils/segmentDetection';
+import { segmentPhase, shouldExitSegment } from '../utils/segmentDetection';
 import { spokenDistanceMeters } from '../utils/units';
 import { GoalMode } from '../types/goalMode';
 import { CueType } from '../store/rideStore';
@@ -33,6 +33,7 @@ interface SegmentTracker {
   startCueFired: boolean;
   enteredAt: number | null; // timestamp ms
   checkpointsFired: Set<number>; // 25, 50, 75
+  minDistToEndM: number; // closest we've come to the end coord (for pass-through exit)
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -51,6 +52,11 @@ TaskManager.defineTask(LOCATION_TASK, async ({ data, error }) => {
     return;
   }
   const { locations } = (data as { locations?: Location.LocationObject[] }) ?? {};
+  // DIAGNOSTIC: discriminates the three failure modes during a screen-off ride —
+  //   no lines at all  → location not delivered in background (permission / FG service)
+  //   trackers=0       → headless task in a separate JS context (module state empty)
+  //   trackers>0, gaps → sampling too sparse for detection radii
+  console.log(`[bgtask] locs=${locations?.length ?? 0} trackers=${_trackers.length} active=${_activeTracker ? 1 : 0} t=${Date.now()}`);
   if (!locations?.length) return;
   for (const loc of locations) onLocationUpdate(loc);
 });
@@ -76,7 +82,14 @@ export async function startRideEngine(
   // screen off / app backgrounded (the normal riding case). Background is best-effort.
   const fg = await Location.requestForegroundPermissionsAsync();
   if (fg.status !== 'granted') return false;
-  try { await Location.requestBackgroundPermissionsAsync(); } catch { /* FG still works */ }
+  // Android 11+ can't grant "Allow all the time" from an in-app prompt — it must be
+  // set in Settings. Log the actual result so we can tell if background is even allowed.
+  try {
+    const bg = await Location.requestBackgroundPermissionsAsync();
+    console.log(`[ridestart] backgroundLocation=${bg.status}`);
+  } catch (e) {
+    console.log('[ridestart] backgroundLocation request threw:', e);
+  }
 
   // Keep audio playing in background / silent mode so cues are audible screen-off.
   try {
@@ -113,6 +126,7 @@ export async function startRideEngine(
       startCueFired: false,
       enteredAt: null,
       checkpointsFired: new Set(),
+      minDistToEndM: Infinity,
     }));
 
   const store = useRideStore.getState();
@@ -218,6 +232,7 @@ export function startSimulatedRide(segmentIds: string[], goalMode: GoalMode): bo
       startCueFired: false,
       enteredAt: null,
       checkpointsFired: new Set<number>(),
+      minDistToEndM: Infinity,
     }));
   if (!_trackers.length) return false;
 
@@ -349,8 +364,14 @@ function handleActiveSegment(pos: LatLng, tracker: SegmentTracker): void {
     }
   }
 
-  // Segment end detection
-  if (distToEnd < SEGMENT_END_RADIUS_M) {
+  // Segment end detection. A direct hit inside the end radius is ideal, but at
+  // riding speed with sparse GPS we often sail past the 40 m window without a
+  // sample landing in it → the segment would hang at 100% forever (seen on a real
+  // ride). So also complete when we clearly approached the end and are now moving
+  // away from it ("passed through"): progress high, we got reasonably close, and
+  // distance-to-end is now growing past the closest approach.
+  tracker.minDistToEndM = Math.min(tracker.minDistToEndM, distToEnd);
+  if (shouldExitSegment(distToEnd, tracker.minDistToEndM, progress)) {
     exitSegment(tracker, elapsedSec, gapSec);
   }
 }

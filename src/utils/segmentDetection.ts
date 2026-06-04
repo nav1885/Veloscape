@@ -25,3 +25,24 @@ export function segmentPhase(
   if (distToStartM < approachRadiusM) return 'approach';
   return 'idle';
 }
+
+/**
+ * Whether an active segment should complete. A direct hit inside the end radius is
+ * ideal, but at riding speed with sparse GPS a sample often never lands in the 40 m
+ * window — so also complete when the rider clearly approached the end and is now
+ * moving away from it ("passed through"). Without this a segment hangs at 100%
+ * forever (observed on a real ride).
+ */
+export function shouldExitSegment(
+  distToEndM: number,
+  minDistToEndM: number,
+  progress: number, // 0..1
+  endRadiusM: number = SEGMENT_END_RADIUS_M,
+): boolean {
+  const hitEnd = distToEndM < endRadiusM;
+  const passedEnd =
+    progress >= 0.85 &&
+    minDistToEndM < 150 &&
+    distToEndM > minDistToEndM + endRadiusM;
+  return hitEnd || passedEnd;
+}
