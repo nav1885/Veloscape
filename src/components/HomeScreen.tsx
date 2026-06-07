@@ -38,6 +38,8 @@ interface Props {
   onSelectMode: (mode: GoalMode) => void;
   onStartRide: () => void;
   onSimulateRide?: () => void; // hidden: long-press Start Ride (test the cue pipeline)
+  rideInProgress?: boolean;
+  onResumeRide?: () => void;
   onRideTap: (rideId: string) => void;
   onAudioPress: (rideId: string) => void;
   onLoadMore: () => void;
@@ -62,6 +64,8 @@ export default function HomeScreen({
   onSelectMode,
   onStartRide,
   onSimulateRide,
+  rideInProgress,
+  onResumeRide,
   onRideTap,
   onAudioPress,
   onLoadMore,
@@ -166,6 +170,14 @@ export default function HomeScreen({
           </View>
         </View>
 
+        {rideInProgress && (
+          <TouchableOpacity style={styles.resumeBanner} onPress={onResumeRide} activeOpacity={0.85}>
+            <View style={styles.resumeDot} />
+            <Text style={styles.resumeText}>Ride in progress</Text>
+            <Text style={styles.resumeCta}>Tap to resume →</Text>
+          </TouchableOpacity>
+        )}
+
         <Text style={styles.modeLabel}>Goal Mode</Text>
         <View style={styles.modeChips} accessibilityRole="radiogroup">
           {(['pr', 'training', 'recovery'] as GoalMode[]).map((mode) => (
@@ -254,6 +266,14 @@ const styles = StyleSheet.create({
   syncStatus: { fontSize: 13, color: colors.textMuted },
   avatar: { width: 36, height: 36, borderRadius: 999, backgroundColor: colors.gold, alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontSize: 14, fontWeight: '700', color: colors.textOnGold },
+  resumeBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginHorizontal: 20, marginBottom: 16, padding: 14, borderRadius: 12,
+    backgroundColor: colors.goldDim, borderWidth: 1.5, borderColor: colors.gold,
+  },
+  resumeDot: { width: 9, height: 9, borderRadius: 999, backgroundColor: colors.gold },
+  resumeText: { flex: 1, fontSize: 15, fontWeight: '700', color: colors.textPrimary },
+  resumeCta: { fontSize: 13, fontWeight: '700', color: colors.gold },
   modeLabel: {
     fontSize: 11, fontWeight: '600', color: colors.textDim, textTransform: 'uppercase',
     letterSpacing: 1.2, paddingHorizontal: 20, paddingBottom: 10,

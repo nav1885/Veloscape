@@ -102,14 +102,9 @@ export function InRideScreenWrapper() {
     // is called only from handleEndRide (the explicit End Ride action).
   }, []);
 
-  // While a ride is active, consume the hardware/gesture back button so it can't
-  // tear down the ride screen and stop coaching. End Ride is the only exit.
-  useEffect(() => {
-    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      return useRideStore.getState().isRideActive; // true = consume (block back)
-    });
-    return () => sub.remove();
-  }, []);
+  // Back works normally — the ride keeps running in the background (foreground
+  // service + background location), independent of this screen being mounted. You
+  // can leave, lock the phone, switch apps; coaching continues until End Ride.
 
   // Elapsed time ticker — fires when rideStartedAt is set by the engine
   useEffect(() => {

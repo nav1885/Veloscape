@@ -9,7 +9,6 @@
 import { Platform, PermissionsAndroid } from 'react-native';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
-import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Audio, InterruptionModeIOS, InterruptionModeAndroid } from 'expo-av';
 import { useRideStore } from '../store/rideStore';
 import { useSegmentStore } from '../store/segmentStore';
@@ -41,7 +40,6 @@ interface SegmentTracker {
 
 const GPS_INTERVAL_MS = 1000;
 const LOCATION_TASK = 'veloscape-ride-location';
-const KEEP_AWAKE_TAG = 'veloscape-ride';
 
 // Background location task — MUST be defined at module scope so it is registered
 // whenever the JS bundle loads (incl. headless restarts). Each fix is fed into the
@@ -117,9 +115,6 @@ export async function startRideEngine(
     });
   } catch { /* non-fatal */ }
 
-  // Belt-and-suspenders for the screen-on / mounted case.
-  activateKeepAwakeAsync(KEEP_AWAKE_TAG).catch(() => {});
-
   _goalMode = goalMode;
   _prevPosition = null;
   _totalDistanceM = 0;
@@ -189,7 +184,6 @@ export async function stopRideEngine(): Promise<void> {
     clearInterval(_simInterval);
     _simInterval = null;
   }
-  deactivateKeepAwake(KEEP_AWAKE_TAG);
   stopTTS();
   _trackers = [];
   _activeTracker = null;

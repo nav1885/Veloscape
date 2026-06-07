@@ -7,6 +7,7 @@ import HomeScreen from '../components/HomeScreen';
 import type { FeedRide } from '../components/HomeScreen';
 import { useAuthStore } from '../store/authStore';
 import { useSegmentStore } from '../store/segmentStore';
+import { useRideStore } from '../store/rideStore';
 import { loadStarredSegments, getStarredSegmentCount } from '../services/segmentService';
 import { getExistingCueSegmentIds } from '../services/cueService';
 import { preWarmCuesForMode } from '../services/cueWarm';
@@ -285,6 +286,16 @@ export default function HomeTab() {
     });
   };
 
+  // A ride keeps running in the background after you leave the screen — let Home
+  // surface it so you can jump back in (re-attaches, doesn't restart).
+  const handleResumeRide = () => {
+    const { routeSegmentIds, goalMode } = useRideStore.getState();
+    navigation.navigate('Ride', {
+      screen: 'InRide',
+      params: { segmentIds: routeSegmentIds, goalMode },
+    });
+  };
+
   // Hidden test affordance: long-press Start Ride → drive a synthetic GPS track
   // through the engine (verifies detection + cues + segment screen; foreground only).
   const handleSimulateRide = async () => {
@@ -298,6 +309,7 @@ export default function HomeTab() {
   };
 
   const firstName = rider?.name.split(' ')[0] ?? 'Rider';
+  const rideInProgress = useRideStore((s) => s.isRideActive);
 
   const feedAudioState = (rideId: string): AudioButtonState => {
     if (generatingRideId === rideId) return 'generating';
@@ -324,6 +336,8 @@ export default function HomeTab() {
       onSelectMode={setLastGoalMode}
       onStartRide={handleStartRide}
       onSimulateRide={handleSimulateRide}
+      rideInProgress={rideInProgress}
+      onResumeRide={handleResumeRide}
       onRideTap={(rideId) =>
         navigation.navigate('Ride', { screen: 'PostRideSummary', params: { rideId } })
       }
