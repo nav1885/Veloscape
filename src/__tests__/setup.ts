@@ -37,9 +37,19 @@ jest.mock('expo-keep-awake', () => ({
   deactivateKeepAwake: jest.fn(),
 }));
 
-// expo-av (background audio session)
+// expo-av (background audio session + duck-focus silent clip)
 jest.mock('expo-av', () => ({
-  Audio: { setAudioModeAsync: jest.fn().mockResolvedValue(undefined) },
+  Audio: {
+    setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
+    Sound: {
+      createAsync: jest.fn().mockResolvedValue({
+        sound: {
+          playFromPositionAsync: jest.fn().mockResolvedValue(undefined),
+          stopAsync: jest.fn().mockResolvedValue(undefined),
+        },
+      }),
+    },
+  },
   InterruptionModeIOS: { DuckOthers: 1 },
   InterruptionModeAndroid: { DuckOthers: 1 },
 }));
