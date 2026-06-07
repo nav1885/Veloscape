@@ -99,7 +99,11 @@ jest.mock('../db/client', () => {
 
 // react-native
 jest.mock('react-native', () => ({
-  Platform: { OS: 'android', select: (obj: any) => obj.android },
+  Platform: { OS: 'android', Version: 34, select: (obj: any) => obj.android },
+  PermissionsAndroid: {
+    PERMISSIONS: { POST_NOTIFICATIONS: 'android.permission.POST_NOTIFICATIONS' },
+    request: jest.fn().mockResolvedValue('granted'),
+  },
   StyleSheet: { create: (s: any) => s },
   View: 'View',
   Text: 'Text',

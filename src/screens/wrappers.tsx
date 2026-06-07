@@ -74,10 +74,19 @@ export function InRideScreenWrapper() {
   const [elapsedTime, setElapsedTime] = useState('0:00:00');
   const engineStartedRef = useRef(false);
 
-  // Start ride engine on mount
+  // Start the ride engine — but the engine lives INDEPENDENTLY of this screen.
+  // Navigating away / hitting back must NOT stop the ride (that was a bug: the old
+  // unmount cleanup called stopRideEngine(), killing GPS + cues). The engine is
+  // stopped only by an explicit End Ride. On remount (navigating back into a live
+  // ride) we must not start a second ride — guard on the store's isRideActive.
   useEffect(() => {
     if (engineStartedRef.current || !segmentIds?.length || !goalMode) return;
     engineStartedRef.current = true;
+
+    if (useRideStore.getState().isRideActive) {
+      console.log('[InRide] ride already running — re-attaching, not restarting');
+      return;
+    }
 
     if (simulate) {
       console.log('[InRide] starting SIMULATED ride with', segmentIds.length, 'segments');
@@ -89,10 +98,17 @@ export function InRideScreenWrapper() {
         else console.log('[InRide] engine started');
       });
     }
+    // NO unmount cleanup — the ride continues across navigation. stopRideEngine()
+    // is called only from handleEndRide (the explicit End Ride action).
+  }, []);
 
-    return () => {
-      stopRideEngine();
-    };
+  // While a ride is active, consume the hardware/gesture back button so it can't
+  // tear down the ride screen and stop coaching. End Ride is the only exit.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      return useRideStore.getState().isRideActive; // true = consume (block back)
+    });
+    return () => sub.remove();
   }, []);
 
   // Elapsed time ticker — fires when rideStartedAt is set by the engine

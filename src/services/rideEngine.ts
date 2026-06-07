@@ -6,6 +6,7 @@
  * Fires TTS cues at segment approach (500m) and on segment completion.
  */
 
+import { Platform, PermissionsAndroid } from 'react-native';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
@@ -82,6 +83,20 @@ export async function startRideEngine(
   // screen off / app backgrounded (the normal riding case). Background is best-effort.
   const fg = await Location.requestForegroundPermissionsAsync();
   if (fg.status !== 'granted') return false;
+
+  // Android 13+: the location FOREGROUND SERVICE needs a postable notification, or
+  // the OS throttles/kills it in the background → GPS + cues stop when the screen
+  // locks. Request POST_NOTIFICATIONS so the persistent ride notification can show.
+  if (Platform.OS === 'android' && Number(Platform.Version) >= 33) {
+    try {
+      const res = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+      );
+      console.log(`[ridestart] postNotifications=${res}`);
+    } catch (e) {
+      console.log('[ridestart] postNotifications request threw:', e);
+    }
+  }
   // Android 11+ can't grant "Allow all the time" from an in-app prompt — it must be
   // set in Settings. Log the actual result so we can tell if background is even allowed.
   try {
