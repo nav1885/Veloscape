@@ -1,0 +1,202 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+:root{
+  --gold:#F5C842; --goldDim:rgba(245,200,66,0.10); --goldBorder:rgba(245,200,66,0.28);
+  --bg:#111111; --overlay:#1A1A1A; --surf:#2A2A2A; --surf2:#222222; --border:#363636;
+  --tp:#F0F0F0; --ts:#888888; --tm:#555555; --td:#444444; --ok:#34C759; --err:#FF453A;
+}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif}
+body{background:#0a0a0a;padding:40px}
+.grid{display:flex;flex-wrap:wrap;gap:48px 40px;justify-content:center;max-width:1180px;margin:0 auto}
+.cell{width:300px}
+.cap{color:var(--gold);font-size:13px;font-weight:700;margin-bottom:10px;text-align:center;letter-spacing:.3px}
+.sub{color:var(--ts);font-size:11px;font-weight:500}
+.phone{width:300px;height:620px;background:var(--bg);border-radius:34px;border:8px solid #000;
+  box-shadow:0 0 0 1px #333, 0 20px 50px rgba(0,0,0,.6);overflow:hidden;position:relative;display:flex;flex-direction:column}
+.status{height:30px;display:flex;align-items:center;justify-content:space-between;padding:0 18px;color:var(--tp);font-size:11px;font-weight:600;flex:none}
+.body{flex:1;padding:18px;overflow:hidden;position:relative}
+.gold{color:var(--gold)} .ts{color:var(--ts)} .tm{color:var(--tm)}
+.btn{background:var(--gold);color:#1a1300;font-weight:800;border-radius:999px;height:52px;display:flex;align-items:center;justify-content:center;font-size:16px}
+.btn.sec{background:transparent;border:1px solid var(--border);color:var(--ts);font-weight:600}
+.chip{flex:1;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;background:var(--surf);border:1px solid var(--border);color:var(--ts)}
+.chip.on{background:var(--goldDim);border:1.5px solid var(--gold);color:var(--gold)}
+.card{background:var(--goldDim);border:1.5px solid var(--gold);border-radius:16px;padding:16px}
+.lbl{font-size:10px;font-weight:700;color:var(--ts);text-transform:uppercase;letter-spacing:.8px}
+.h1{font-size:23px;font-weight:800;color:var(--tp);line-height:1.2}
+.mono{font-variant-numeric:tabular-nums}
+/* notification */
+.notif{background:#1c1c1e;border-radius:18px;padding:14px;border:1px solid #2c2c2e}
+.nrow{display:flex;align-items:center;gap:10px}
+.nicon{width:34px;height:34px;border-radius:9px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:18px}
+.nact{flex:1;text-align:center;padding:9px 0;border-radius:9px;background:#2c2c2e;color:var(--tp);font-size:13px;font-weight:700}
+.nact.warn{color:var(--err)} .nact.gold{color:var(--gold)}
+.lockclock{color:#fff;font-size:54px;font-weight:300;text-align:center;letter-spacing:1px}
+.lockdate{color:#bbb;font-size:14px;text-align:center;margin-top:2px}
+</style></head><body>
+<div class="grid">
+
+<!-- 1. Location primer -->
+<div class="cell"><div class="cap">① Onboarding · Location</div><div class="phone">
+  <div class="status"><span>9:41</span><span>📶 100%</span></div>
+  <div class="body" style="display:flex;flex-direction:column">
+    <div style="font-size:46px;text-align:center;margin:24px 0 18px">📍</div>
+    <div class="h1" style="text-align:center">Coaching works with your phone away</div>
+    <p style="color:var(--ts);font-size:14px;line-height:1.5;margin-top:14px;text-align:center">
+      Veloscape needs location set to <b style="color:var(--tp)">“Allow all the time”</b> so it can track your ride and cue your segments while the screen is off and the phone’s in your pocket.</p>
+    <div style="background:var(--surf2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-top:18px;color:var(--ts);font-size:12.5px;line-height:1.5">
+      On the next screen, tap <b style="color:var(--gold)">Allow all the time</b>. “While using the app” will stop coaching when you lock your phone.</div>
+    <div style="flex:1"></div>
+    <div class="btn">Continue</div>
+    <div style="text-align:center;color:var(--tm);font-size:12px;margin-top:12px">Why we ask</div>
+  </div>
+</div></div>
+
+<!-- 2. Notification primer -->
+<div class="cell"><div class="cap">② Onboarding · Notifications</div><div class="phone">
+  <div class="status"><span>9:41</span><span>📶 100%</span></div>
+  <div class="body" style="display:flex;flex-direction:column">
+    <div style="font-size:46px;text-align:center;margin:24px 0 18px">🔔</div>
+    <div class="h1" style="text-align:center">Your lock-screen ride remote</div>
+    <p style="color:var(--ts);font-size:14px;line-height:1.5;margin-top:14px;text-align:center">
+      During a ride, a notification lets you <b style="color:var(--tp)">mute the coach</b> or <b style="color:var(--tp)">end the ride</b> right from your lock screen — no unlocking.</p>
+    <div class="notif" style="margin-top:18px">
+      <div class="nrow"><div class="nicon">🚴</div><div><div style="color:#fff;font-size:13px;font-weight:700">Veloscape · riding</div><div style="color:#9a9a9a;font-size:11px">Coaching on · 2 of 8 done</div></div></div>
+      <div class="nrow" style="margin-top:12px"><div class="nact gold">Mute</div><div class="nact warn">End</div></div>
+    </div>
+    <div style="flex:1"></div>
+    <div class="btn">Enable notifications</div>
+  </div>
+</div></div>
+
+<!-- 3. Home -->
+<div class="cell"><div class="cap">③ Home · pick mode → start</div><div class="phone">
+  <div class="status"><span>9:41</span><span>📶 100%</span></div>
+  <div class="body">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start">
+      <div><div style="font-size:20px;font-weight:800;color:var(--tp)">Good morning, Naveen.</div>
+      <div class="sub" style="margin-top:4px">38 starred segments · synced just now</div></div>
+      <div style="width:34px;height:34px;border-radius:999px;background:var(--gold);color:#1a1300;font-weight:800;display:flex;align-items:center;justify-content:center">N</div>
+    </div>
+    <div class="lbl" style="margin:20px 0 8px">Goal mode</div>
+    <div style="display:flex;gap:8px"><div class="chip">PR</div><div class="chip on">Training</div><div class="chip">Recovery</div></div>
+    <div class="btn" style="margin-top:16px">Start Ride</div>
+    <div style="text-align:center;color:var(--tm);font-size:11px;margin-top:8px">Coaching runs in the background — pocket your phone.</div>
+    <div class="lbl" style="margin:22px 0 10px">Recent rides</div>
+    <div style="background:var(--surf2);border-radius:12px;padding:12px;display:flex;gap:10px;align-items:center;margin-bottom:8px">
+      <div style="width:40px;height:40px;border-radius:8px;background:#1a1a1a;display:flex;align-items:center;justify-content:center">〰️</div>
+      <div style="flex:1"><div style="color:var(--tp);font-size:14px;font-weight:700">Morning Ride</div><div class="sub">17.2 mi · 1:09:46</div></div>
+      <div class="gold">▶</div></div>
+    <div style="background:var(--surf2);border-radius:12px;padding:12px;display:flex;gap:10px;align-items:center">
+      <div style="width:40px;height:40px;border-radius:8px;background:#1a1a1a;display:flex;align-items:center;justify-content:center">〰️</div>
+      <div style="flex:1"><div style="color:var(--tp);font-size:14px;font-weight:700">Bernal Loop</div><div class="sub">9.4 mi · 41:20</div></div>
+      <div class="gold">▶</div></div>
+  </div>
+</div></div>
+
+<!-- 4. Start handoff -->
+<div class="cell"><div class="cap">④ Start · GPS handoff</div><div class="phone">
+  <div class="status"><span>9:41</span><span>📶 100%</span></div>
+  <div class="body" style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center">
+    <div style="width:84px;height:84px;border-radius:999px;border:3px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:36px">📡</div>
+    <div class="h1" style="margin-top:26px">GPS locked</div>
+    <div class="gold" style="font-size:16px;font-weight:700;margin-top:10px">8 segments loaded · Training</div>
+    <p style="color:var(--ts);font-size:15px;line-height:1.5;margin-top:18px;padding:0 6px">
+      You can put your phone away.<br>I’ll call out each segment as you reach it.</p>
+    <div style="margin-top:26px;background:var(--goldDim);border:1px solid var(--goldBorder);border-radius:999px;padding:8px 16px;color:var(--gold);font-size:12px;font-weight:700">🔊 “GPS locked — let’s ride”</div>
+  </div>
+</div></div>
+
+<!-- 5. In-ride between segments -->
+<div class="cell"><div class="cap">⑤ In-ride · between segments</div><div class="phone">
+  <div class="status"><span>9:53</span><span>📶 100%</span></div>
+  <div class="body" style="display:flex;flex-direction:column">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span class="mono" style="color:var(--tp);font-size:15px;font-weight:700">0:48:34</span>
+      <div style="display:flex;gap:7px;align-items:center">
+        <span style="background:var(--goldDim);border:1px solid var(--goldBorder);color:var(--gold);font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px">TRAINING</span>
+        <span style="color:var(--ok);font-size:11px;font-weight:700">● GPS</span></div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+      <div style="display:flex;align-items:center;gap:8px;background:var(--goldDim);border:1px solid var(--goldBorder);border-radius:999px;padding:7px 16px">
+        <span style="width:8px;height:8px;border-radius:999px;background:var(--ok);display:inline-block"></span>
+        <span class="gold" style="font-size:13px;font-weight:700">Coaching on</span></div>
+      <div class="mono" style="font-size:64px;font-weight:800;color:var(--tp);margin-top:14px">7.3</div>
+      <div class="lbl">miles</div>
+      <div class="mono" style="font-size:18px;color:var(--ts);font-weight:700;margin-top:14px">2 of 8 segments</div>
+      <div class="ts" style="font-size:12px;margin-top:2px">next: Bernal Climb · 0.4 mi</div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <div class="btn" style="flex:1.4">🔊 Mute</div>
+      <div class="btn sec" style="flex:1">Hold to End</div>
+    </div>
+  </div>
+</div></div>
+
+<!-- 6. In-ride active segment -->
+<div class="cell"><div class="cap">⑥ In-ride · segment active</div><div class="phone">
+  <div class="status"><span>9:54</span><span>📶 100%</span></div>
+  <div class="body" style="display:flex;flex-direction:column">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span class="mono" style="color:var(--tp);font-size:15px;font-weight:700">0:49:02</span>
+      <div style="display:flex;gap:7px;align-items:center">
+        <span style="background:var(--goldDim);border:1px solid var(--goldBorder);color:var(--gold);font-size:11px;font-weight:700;border-radius:999px;padding:3px 10px">TRAINING</span>
+        <span style="color:var(--ok);font-size:11px;font-weight:700">● GPS</span></div>
+    </div>
+    <div class="card" style="margin-top:14px">
+      <div style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:999px;background:var(--gold)"></span>
+        <span class="gold" style="font-size:11px;font-weight:800;letter-spacing:1px">ACTIVE</span>
+        <span style="flex:1;text-align:right;color:var(--tp);font-size:15px;font-weight:700">Bernal Climb</span></div>
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:12px">
+        <div><div class="mono" style="font-size:46px;font-weight:800;color:var(--tp);line-height:1">1:12</div><div class="lbl" style="margin-top:3px">elapsed</div></div>
+        <div style="text-align:right"><div class="mono" style="font-size:28px;font-weight:800;color:var(--ok)">−4s</div><div class="lbl">vs PR</div></div></div>
+      <div style="height:5px;background:var(--surf);border-radius:999px;margin-top:14px;overflow:hidden"><div style="height:100%;width:62%;background:var(--gold)"></div></div>
+      <div style="display:flex;justify-content:space-between;margin-top:14px;text-align:center">
+        <div><div class="mono" style="color:var(--tp);font-size:14px;font-weight:700">0.6 mi</div><div class="lbl">dist</div></div>
+        <div><div class="mono" style="color:var(--tp);font-size:14px;font-weight:700">5.2%</div><div class="lbl">grade</div></div>
+        <div><div class="mono" style="color:var(--tp);font-size:14px;font-weight:700">1:16</div><div class="lbl">PR</div></div></div>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px">
+      <div style="background:var(--goldDim);border:1px solid var(--goldBorder);border-radius:999px;padding:7px 14px;color:var(--gold);font-size:12px;font-weight:700">🔊 “3 seconds up — hold it”</div></div>
+    <div style="display:flex;gap:10px"><div class="btn" style="flex:1.4">🔊 Mute</div><div class="btn sec" style="flex:1">Hold to End</div></div>
+  </div>
+</div></div>
+
+<!-- 7. Lock screen notification active -->
+<div class="cell"><div class="cap">⑦ Lock screen · coaching</div><div class="phone">
+  <div class="status"><span>9:53</span><span>📶 100%</span></div>
+  <div class="body" style="padding-top:30px">
+    <div class="lockclock">9:53</div><div class="lockdate">Monday, June 9</div>
+    <div class="notif" style="margin-top:34px">
+      <div class="nrow"><div class="nicon">🚴</div><div style="flex:1"><div style="color:#fff;font-size:13px;font-weight:700">Veloscape · riding</div><div style="color:#9a9a9a;font-size:11px;margin-top:1px">Coaching on · 7.3 mi · 2 of 8</div></div></div>
+      <div class="nrow" style="margin-top:12px"><div class="nact gold">🔊 Mute</div><div class="nact warn">End</div></div>
+    </div>
+    <div class="notif" style="margin-top:10px;opacity:.6"><div class="nrow"><div class="nicon" style="background:#444">📍</div><div style="color:#bbb;font-size:12px">Veloscape is using your location</div></div></div>
+  </div>
+</div></div>
+
+<!-- 8. Lock screen end confirm -->
+<div class="cell"><div class="cap">⑧ Lock screen · End confirm</div><div class="phone">
+  <div class="status"><span>9:58</span><span>📶 100%</span></div>
+  <div class="body" style="padding-top:30px">
+    <div class="lockclock">9:58</div><div class="lockdate">Monday, June 9</div>
+    <div class="notif" style="margin-top:34px;border:1px solid var(--err)">
+      <div class="nrow"><div class="nicon" style="background:var(--err)">🚴</div><div style="flex:1"><div style="color:#fff;font-size:13px;font-weight:700">End this ride?</div><div style="color:#9a9a9a;font-size:11px;margin-top:1px">Tap “End ride” to confirm · saves automatically</div></div></div>
+      <div class="nrow" style="margin-top:12px"><div class="nact">Keep riding</div><div class="nact warn" style="background:var(--err);color:#fff">End ride</div></div>
+    </div>
+  </div>
+</div></div>
+
+<!-- 9. Ride saved / deferred summary -->
+<div class="cell"><div class="cap">⑨ Saved → summary next open</div><div class="phone">
+  <div class="status"><span>10:02</span><span>📶 100%</span></div>
+  <div class="body" style="display:flex;flex-direction:column">
+    <div style="background:var(--goldDim);border:1px solid var(--goldBorder);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <span style="font-size:18px">✓</span><div style="flex:1"><div class="gold" style="font-size:13px;font-weight:800">Ride saved</div><div class="ts" style="font-size:11px">Tap to see your debrief →</div></div></div>
+    <div class="h1">Morning Ride</div><div class="sub" style="margin-top:4px">17.6 mi · 1:14:02 · 8 segments</div>
+    <div style="background:#1a1a1a;border-radius:12px;height:120px;margin-top:14px;display:flex;align-items:center;justify-content:center;color:var(--tm);font-size:12px">〰️ route map</div>
+    <div style="background:var(--surf2);border-radius:12px;padding:13px;margin-top:12px;color:var(--ts);font-size:12.5px;line-height:1.5">
+      Strong ride. <b class="gold">2 new PRs</b> — Bernal Climb (−4s) and 1st Bernal Sprint (−2s). You held pace through the false flat this time.</div>
+    <div class="btn" style="margin-top:14px">▶ Play debrief</div>
+  </div>
+</div></div>
+
+</div></body></html>
