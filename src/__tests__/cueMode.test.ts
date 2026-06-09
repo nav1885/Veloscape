@@ -6,6 +6,9 @@
  * tests assert the three modes now diverge, and that Recovery is quiet.
  */
 import { variantForMode, shouldFireCue } from '../services/rideEngine';
+import { useRideStore } from '../store/rideStore';
+
+afterEach(() => useRideStore.getState().setCuesMuted(false));
 
 describe('variantForMode', () => {
   it('maps PR → aggressive', () => expect(variantForMode('pr')).toBe('aggressive'));
@@ -34,5 +37,22 @@ describe('shouldFireCue', () => {
       expect(shouldFireCue('pr', t)).toBe(true);
       expect(shouldFireCue('training', t)).toBe(true);
     }
+  });
+});
+
+describe('mute gates EVERY cue type (R1 — the real-ride correctness item)', () => {
+  it('mute suppresses all cue types across all modes', () => {
+    useRideStore.getState().setCuesMuted(true);
+    for (const mode of ['pr', 'training', 'recovery'] as const) {
+      for (const t of ['approach', 'start', 'split25', 'split50', 'split75', 'end'] as const) {
+        expect(shouldFireCue(mode, t)).toBe(false);
+      }
+    }
+  });
+  it('unmute restores normal behavior', () => {
+    useRideStore.getState().setCuesMuted(true);
+    useRideStore.getState().setCuesMuted(false);
+    expect(shouldFireCue('training', 'approach')).toBe(true);
+    expect(shouldFireCue('pr', 'end')).toBe(true);
   });
 });

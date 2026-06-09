@@ -55,6 +55,7 @@ interface RideState {
   // Live GPS
   currentPosition: GpsPosition | null;
   gpsLocked: boolean;
+  cuesMuted: boolean; // ride-scoped mute (NOT the global ttsEnabled pref)
   distanceKm: number;
   gpxTrackPoints: GpsPosition[]; // buffered for post-ride
 
@@ -85,6 +86,7 @@ interface RideState {
   completeSegment: (result: CompletedSegmentResult) => void;
   setCuePlayback: (variant: 'aggressive' | 'moderate' | 'recovery', text: string) => void;
   setAudioActive: (active: boolean) => void;
+  setCuesMuted: (muted: boolean) => void;
   endRide: () => void;
   resetRide: () => void;
 }
@@ -96,6 +98,7 @@ export const useRideStore = create<RideState>()((set, get) => ({
   routeSegmentIds: [],
   currentPosition: null,
   gpsLocked: false,
+  cuesMuted: false,
   distanceKm: 0,
   gpxTrackPoints: [],
   currentSegment: null,
@@ -115,6 +118,8 @@ export const useRideStore = create<RideState>()((set, get) => ({
       currentSegment: null,
       completedSegments: [],
       distanceKm: 0,
+      gpsLocked: false, // reset per ride — else ride 2 carries stale lock + false handoff
+      cuesMuted: false,
       gpxTrackPoints: [],
       coachedSegmentCount: 0,
       nextSegmentId: segmentIds[0] ?? null,
@@ -204,6 +209,8 @@ export const useRideStore = create<RideState>()((set, get) => ({
 
   setAudioActive: (active) => set({ audioActive: active }),
 
+  setCuesMuted: (muted) => set({ cuesMuted: muted }),
+
   endRide: () => set({ isRideActive: false, lastRideEndedAt: Date.now() }),
 
   resetRide: () =>
@@ -213,6 +220,7 @@ export const useRideStore = create<RideState>()((set, get) => ({
       routeSegmentIds: [],
       currentPosition: null,
       gpsLocked: false,
+      cuesMuted: false,
       distanceKm: 0,
       gpxTrackPoints: [],
       currentSegment: null,

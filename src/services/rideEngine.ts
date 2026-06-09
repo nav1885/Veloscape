@@ -142,9 +142,11 @@ export async function startRideEngine(
   const store = useRideStore.getState();
   store.startRide(goalMode, segmentIds);
 
-  // Speak start cue
+  // Speak start cue (gated by mute only — Recovery should still hear the start handoff)
   const segCount = _trackers.length;
-  speak(`GPS locked. ${segCount} segment${segCount !== 1 ? 's' : ''} loaded. Goal: ${goalMode === 'pr' ? 'P R' : goalMode}. Let's go.`);
+  if (!useRideStore.getState().cuesMuted) {
+    speak(`GPS locked. ${segCount} segment${segCount !== 1 ? 's' : ''} loaded. Goal: ${goalMode === 'pr' ? 'P R' : goalMode}. Let's go.`);
+  }
   store.setAudioActive(true);
 
   // Start background-capable GPS via a foreground service so tracking continues
@@ -158,7 +160,7 @@ export async function startRideEngine(
     foregroundService: {
       notificationTitle: 'Veloscape — ride in progress',
       notificationBody: 'Tracking your route and coaching your segments.',
-      notificationColor: '#F5C518',
+      notificationColor: '#F5C842', // matches colors.gold
     },
   });
 
@@ -440,14 +442,16 @@ function exitSegment(
   } else {
     endText = `${timeStr}. First effort recorded.`;
   }
-  speak(endText);
-  useRideStore.getState().appendCueLog({
-    segmentId: tracker.segment.id,
-    cueType: 'end',
-    variant: null,
-    text: endText,
-    firedAt: Date.now(),
-  });
+  if (shouldFireCue(_goalMode, 'end')) {
+    speak(endText);
+    useRideStore.getState().appendCueLog({
+      segmentId: tracker.segment.id,
+      cueType: 'end',
+      variant: null,
+      text: endText,
+      firedAt: Date.now(),
+    });
+  }
 
   // Update store
   const store = useRideStore.getState();
@@ -465,6 +469,22 @@ function exitSegment(
   _activeTracker = null;
 }
 
+// ─── Mute controls (shared by the in-app MuteToggle and the notification action) ─
+
+/** Mute all coaching cues for the rest of the ride. Kills any in-flight speech,
+ *  then speaks a one-off confirmation that deliberately rides the UNGATED path. */
+export function muteCoaching(): void {
+  useRideStore.getState().setCuesMuted(true);
+  stopTTS();
+  speak('Coaching muted'); // intentional: confirm AFTER the mute flag is set
+}
+
+/** Re-enable coaching cues and confirm audibly. */
+export function unmuteCoaching(): void {
+  useRideStore.getState().setCuesMuted(false);
+  speak('Coaching on');
+}
+
 // ─── Mode-aware cue selection (Quick-Start Modes) ──────────────────────────────
 
 /** Which LLM cue variant a mode speaks on segment approach. */
@@ -478,6 +498,7 @@ export function variantForMode(goalMode: GoalMode): 'aggressive' | 'moderate' | 
  * always fire so the rider still hears a (de-escalating) voice.
  */
 export function shouldFireCue(goalMode: GoalMode, cueType: CueType): boolean {
+  if (useRideStore.getState().cuesMuted) return false; // mute gates EVERY cue type
   if (goalMode === 'recovery' && (cueType === 'start' || cueType.startsWith('split'))) return false;
   return true;
 }
@@ -490,26 +511,31 @@ function fireApproachCue(tracker: SegmentTracker): void {
   const store = useRideStore.getState();
   let cueText: string;
   let variant: 'aggressive' | 'moderate' | 'recovery' | null = null;
+  // Audio is gated by mute (shouldFireCue); segment STATE transitions always happen
+  // so the UI still tracks approach/next even when muted.
+  const willSpeak = shouldFireCue(_goalMode, 'approach');
 
   if (cue) {
     variant = variantForMode(_goalMode);
     cueText = cue[variant];
-    speak(cueText);
+    if (willSpeak) speak(cueText);
     store.setSegmentState(seg.id, 'approaching');
     useRideStore.setState({ nextSegmentId: seg.id });
   } else {
     const prStr = seg.bestTimeSec ? `P R is ${formatTimeSec(seg.bestTimeSec)}.` : '';
     cueText = `${seg.name} ahead. ${spokenDistanceMeters(seg.distanceM)}. ${prStr}`;
-    speak(cueText);
+    if (willSpeak) speak(cueText);
   }
 
-  store.appendCueLog({
-    segmentId: seg.id,
-    cueType: 'approach',
-    variant,
-    text: cueText,
-    firedAt: Date.now(),
-  });
+  if (willSpeak) {
+    store.appendCueLog({
+      segmentId: seg.id,
+      cueType: 'approach',
+      variant,
+      text: cueText,
+      firedAt: Date.now(),
+    });
+  }
 }
 
 function fireSplitCue(
