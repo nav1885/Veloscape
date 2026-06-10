@@ -90,7 +90,8 @@ export default function HomeTab() {
     if (rider && !useRideStore.getState().isRideActive) {
       const unviewedId = getUnviewedSummaryRideId(rider.id);
       if (unviewedId) {
-        navigation.navigate('Ride', { screen: 'PostRideSummary', params: { rideId: unviewedId } });
+        // Backgrounded-End summary: speak the debrief now that the rider's looking.
+        navigation.navigate('Ride', { screen: 'PostRideSummary', params: { rideId: unviewedId, speakDebrief: true } });
       }
     }
   }, [reloadFeed, rider]));

@@ -20,7 +20,7 @@ import { AppState } from 'react-native';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import { File, Paths } from 'expo-file-system';
-import { useRideStore } from '../store/rideStore';
+import { useRideStore, CompletedSegmentResult } from '../store/rideStore';
 import { useSegmentStore, Segment } from '../store/segmentStore';
 import { getCueForSegment } from './cueService';
 import { speak } from './ttsService';
@@ -44,8 +44,10 @@ const STATE_FILE = 'veloscape-geofence-state.json';
 
 interface GeofenceState {
   goalMode: GoalMode;
+  cuesMuted: boolean;              // honored in the background (mute must survive a headless wake)
   started: Record<string, number>; // segmentId → entered-start timestamp (ms)
-  fired: Record<string, true>;     // `${segId}:start|end` cues already spoken (de-dup)
+  fired: Record<string, true>;     // `${segId}:start|end` already handled (de-dup)
+  completed: CompletedSegmentResult[]; // efforts finished in the background — merged at save
 }
 
 // ─── Durable state (survives a headless wake) ────────────────────────────────
@@ -102,22 +104,43 @@ TaskManager.defineTask(GEOFENCE_TASK, async ({ data, error }) => {
   const seg = lookupSegment(segId);
   if (!seg) return;
 
-  console.log(`[geofence] BACKGROUND enter ${kind} seg=${segId}`);
+  console.log(`[geofence] BACKGROUND enter ${kind} seg=${segId} muted=${state.cuesMuted}`);
 
   if (kind === 'start') {
     if (state.fired[`${segId}:start`]) return;
     state.fired[`${segId}:start`] = true;
     state.started[segId] = Date.now();
     writeState(state);
-    speakStartCue(seg, state.goalMode);
+    // Track regardless; SPEAK only when not muted (mute must hold in the background).
+    if (!state.cuesMuted) speakStartCue(seg, state.goalMode);
   } else if (kind === 'end') {
     if (state.fired[`${segId}:end`]) return;
     const startedAt = state.started[segId];
     state.fired[`${segId}:end`] = true;
+    // Record the effort durably so endRideAndSave persists it (background ≠ data loss).
+    const effort = buildEffort(seg, startedAt);
+    state.completed.push(effort);
     writeState(state);
-    speakResultCue(seg, startedAt);
+    // Best-effort live-store update (no-op in a separate headless context).
+    try { useRideStore.getState().completeSegment(effort); } catch { /* headless */ }
+    if (!state.cuesMuted) speakResultCue(seg, startedAt);
   }
 });
+
+/** Compute the completed-effort record (time, PR delta) from the two crossings. */
+function buildEffort(seg: Segment, startedAt: number | undefined): CompletedSegmentResult {
+  const timeSec = startedAt ? Math.round((Date.now() - startedAt) / 1000) : 0;
+  const best = seg.bestTimeSec;
+  return {
+    segmentId: seg.id,
+    name: seg.name,
+    timeSec,
+    isNewPR: best ? timeSec < best : true,
+    gapToPreSeconds: best ? timeSec - best : 0,
+    prTimeSec: best ?? undefined,
+    wasSkipped: false,
+  };
+}
 
 function lookupSegment(segId: string): Segment | null {
   // starredSegments is populated before a ride; in a fresh headless context it may be
@@ -153,7 +176,7 @@ function speakResultCue(seg: Segment, startedAt: number | undefined): void {
 /** Register start+end geofences for every ride segment. OS-managed → fires
  *  enter events (and thus cues) even when the app is backgrounded/killed. */
 export async function startRideGeofences(segments: Segment[], goalMode: GoalMode): Promise<void> {
-  writeState({ goalMode, started: {}, fired: {} });
+  writeState({ goalMode, cuesMuted: false, started: {}, fired: {}, completed: [] });
 
   // Android caps geofences at 100; start+end per segment. Cap at 50 segments.
   const capped = segments.slice(0, 50);
@@ -180,4 +203,20 @@ export async function stopRideGeofences(): Promise<void> {
     console.warn('[geofence] stopGeofencing failed:', e);
   }
   clearState();
+}
+
+/** Mirror the mute flag into the durable geofence state so a headless background
+ *  wake honors it. Called by muteCoaching/unmuteCoaching. */
+export async function setGeofenceMuted(muted: boolean): Promise<void> {
+  const s = await readState();
+  if (!s) return;
+  s.cuesMuted = muted;
+  writeState(s);
+}
+
+/** Efforts completed via the background geofence path — merged into the saved ride
+ *  by endRideAndSave so a pocketed ride never loses its segments. Returns [] if none. */
+export async function getBackgroundCompletedEfforts(): Promise<CompletedSegmentResult[]> {
+  const s = await readState();
+  return s?.completed ?? [];
 }

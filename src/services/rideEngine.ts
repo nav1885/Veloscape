@@ -17,7 +17,7 @@ import { getCueForSegment } from './cueService';
 import { speak, stop as stopTTS } from './ttsService';
 import { haversineMetres, decodePolyline, LatLng } from '../utils/polyline';
 import { segmentPhase, shouldExitSegment } from '../utils/segmentDetection';
-import { startRideGeofences, stopRideGeofences } from './rideGeofence';
+import { startRideGeofences, stopRideGeofences, setGeofenceMuted } from './rideGeofence';
 import { spokenDistanceMeters } from '../utils/units';
 import { GoalMode } from '../types/goalMode';
 import { CueType } from '../store/rideStore';
@@ -492,6 +492,7 @@ function exitSegment(
  *  then speaks a one-off confirmation that deliberately rides the UNGATED path. */
 export function muteCoaching(): void {
   useRideStore.getState().setCuesMuted(true);
+  setGeofenceMuted(true).catch(() => {}); // mirror so the background path honors mute too
   stopTTS();
   speak('Coaching muted'); // intentional: confirm AFTER the mute flag is set
 }
@@ -499,6 +500,7 @@ export function muteCoaching(): void {
 /** Re-enable coaching cues and confirm audibly. */
 export function unmuteCoaching(): void {
   useRideStore.getState().setCuesMuted(false);
+  setGeofenceMuted(false).catch(() => {});
   speak('Coaching on');
 }
 
