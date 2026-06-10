@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Platform, Alert, Linking } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { RootStackParamList } from '../navigation/types';
@@ -45,6 +46,8 @@ export default function HomeTab() {
   const starredSegments = useSegmentStore((s) => s.starredSegments);
   const lastGoalMode = useSettingsStore((s) => s.lastGoalMode);
   const setLastGoalMode = useSettingsStore((s) => s.setLastGoalMode);
+  const backgroundSetupSeen = useSettingsStore((s) => s.backgroundSetupSeen);
+  const setBackgroundSetupSeen = useSettingsStore((s) => s.setBackgroundSetupSeen);
 
   const [segmentCount, setSegmentCount] = useState(() => getStarredSegmentCount());
   const [lastSynced, setLastSynced] = useState('—');
@@ -285,7 +288,7 @@ export default function HomeTab() {
 
   // Quick-Start: load starred segments (engine builds trackers from the store,
   // which may be unpopulated when sync was skipped), then go straight to InRide.
-  const handleStartRide = async () => {
+  const beginRide = async () => {
     const segs = await loadStarredSegments();
     if (!segs.length) return;
     setStarredSegments(segs);
@@ -293,6 +296,27 @@ export default function HomeTab() {
       screen: 'InRide',
       params: { segmentIds: segs.map((s) => s.id), goalMode: lastGoalMode },
     });
+  };
+
+  const handleStartRide = async () => {
+    // One-time, before the first ride: make sure the phone won't kill background
+    // coaching. Most lethal on Samsung — point the rider at the two settings, then ride.
+    if (Platform.OS === 'android' && !backgroundSetupSeen) {
+      setBackgroundSetupSeen(true);
+      Alert.alert(
+        'Keep coaching with your screen off',
+        'So Veloscape can coach you with the phone in your pocket, set it to:\n\n' +
+          '•  Battery → Unrestricted\n' +
+          '•  Never sleeping apps  (Battery → Background usage limits)\n\n' +
+          'You only need to do this once.',
+        [
+          { text: 'Open settings', onPress: () => Linking.openSettings().catch(() => {}) },
+          { text: 'Start ride now', style: 'cancel', onPress: () => { beginRide(); } },
+        ],
+      );
+      return;
+    }
+    beginRide();
   };
 
   // A ride keeps running in the background after you leave the screen — let Home

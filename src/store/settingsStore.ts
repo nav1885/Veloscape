@@ -26,6 +26,8 @@ interface SettingsState {
   summariesEnabled: boolean;
   // Quick-Start Modes amendment — last-used ride mode, pre-selected on Home.
   lastGoalMode: GoalMode;
+  // One-time background-reliability setup prompt shown before the first ride.
+  backgroundSetupSeen: boolean;
 
   setUnits: (u: Units) => void;
   setTtsRate: (r: number) => void;
@@ -34,6 +36,7 @@ interface SettingsState {
   setHrCheckinEnabled: (e: boolean) => void;
   setSummariesEnabled: (e: boolean) => void;
   setLastGoalMode: (m: GoalMode) => void;
+  setBackgroundSetupSeen: (s: boolean) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -46,6 +49,7 @@ export const useSettingsStore = create<SettingsState>()(
       hrCheckinEnabled: true,
       summariesEnabled: true,
       lastGoalMode: 'training',
+      backgroundSetupSeen: false,
       setUnits: (units) => set({ units }),
       setTtsRate: (ttsRate) => set({ ttsRate }),
       setTtsEnabled: (ttsEnabled) => set({ ttsEnabled }),
@@ -53,6 +57,7 @@ export const useSettingsStore = create<SettingsState>()(
       setHrCheckinEnabled: (hrCheckinEnabled) => set({ hrCheckinEnabled }),
       setSummariesEnabled: (summariesEnabled) => set({ summariesEnabled }),
       setLastGoalMode: (lastGoalMode) => set({ lastGoalMode }),
+      setBackgroundSetupSeen: (backgroundSetupSeen) => set({ backgroundSetupSeen }),
     }),
     {
       name: 'settings-storage',
