@@ -17,7 +17,7 @@ import { LatLng, haversineMetres, decodePolyline } from '../utils/polyline';
 import { getCachedActivities, getActivitySummaryPolyline } from '../services/activityService';
 import { getActivityDetail } from '../services/stravaApi';
 import { upsertCachedActivityFromDetail } from '../services/homeIngestor';
-import { startRideEngine, startSimulatedRide, stopRideEngine, getRideStartTime } from '../services/rideEngine';
+import { startRideEngine, startSimulatedRide, stopRideEngine, getRideStartTime, muteCoaching, unmuteCoaching } from '../services/rideEngine';
 import { endRideAndSave } from '../services/rideControl';
 import { saveRide, generateDebrief } from '../services/rideService';
 import {
@@ -65,7 +65,7 @@ export function InRideScreenWrapper() {
   const currentPosition = useRideStore((s) => s.currentPosition);
   const gpsLocked = useRideStore((s) => s.gpsLocked);
   const distanceKm = useRideStore((s) => s.distanceKm);
-  const audioActive = useRideStore((s) => s.audioActive);
+  const cuesMuted = useRideStore((s) => s.cuesMuted);
   const rideStartedAt = useRideStore((s) => s.rideStartedAt);
   const currentSegment = useRideStore((s) => s.currentSegment);
   const routeSegmentIds = useRideStore((s) => s.routeSegmentIds);
@@ -194,9 +194,10 @@ export function InRideScreenWrapper() {
       speedKmh={currentPosition?.speedKmh ?? 0}
       distanceKm={distanceKm}
       gpsLocked={gpsLocked}
-      audioActive={audioActive}
       goalMode={goalMode}
       board={board}
+      cuesMuted={cuesMuted}
+      onToggleMute={() => (cuesMuted ? unmuteCoaching() : muteCoaching())}
       onEndRide={handleEndRide}
     />
   );
