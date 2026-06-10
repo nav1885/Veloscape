@@ -31,7 +31,7 @@ export type RideStackParamList = {
     gapToPreSeconds: number;
     prTimeSec?: number;
   };
-  PostRideSummary: { rideId: string };
+  PostRideSummary: { rideId: string; speakDebrief?: boolean };
   Paywall: { triggerSource: 'segment_gate' | 'feature_gate' };
 };
 

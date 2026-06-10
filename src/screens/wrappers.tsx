@@ -18,6 +18,7 @@ import { getCachedActivities, getActivitySummaryPolyline } from '../services/act
 import { getActivityDetail } from '../services/stravaApi';
 import { upsertCachedActivityFromDetail } from '../services/homeIngestor';
 import { startRideEngine, startSimulatedRide, stopRideEngine, getRideStartTime } from '../services/rideEngine';
+import { endRideAndSave } from '../services/rideControl';
 import { saveRide, generateDebrief } from '../services/rideService';
 import {
   getOrGenerateSummary,
@@ -119,13 +120,15 @@ export function InRideScreenWrapper() {
     return () => clearInterval(tick);
   }, [rideStartedAt]);
 
-  function handleEndRide() {
-    stopRideEngine();
-    const store = useRideStore.getState();
-    store.endRide();
-    // Generate a ride ID for the summary
-    const rideId = `ride_${Date.now()}`;
-    navigation.navigate('PostRideSummary', { rideId });
+  async function handleEndRide() {
+    // Single save path: persists to SQLite + tears down + resets the store BEFORE
+    // we navigate. The summary then renders from the saved row.
+    const result = await endRideAndSave('in-app');
+    if (result) {
+      navigation.navigate('PostRideSummary', { rideId: result.rideId, speakDebrief: true });
+    } else {
+      navigation.getParent()?.navigate('Main', { screen: 'Home' });
+    }
   }
 
   // InRide is the Ride stack's base route, so it can mount under a
@@ -338,29 +341,10 @@ export function PostRideSummaryScreenWrapper() {
   }, [isHistoryMode, rideTrack, persisted, stravaAccessToken]);
 
 
-  // Save ride on mount (live only) — captures cue log too
-  const savedRef = useRef(false);
-  useEffect(() => {
-    if (isHistoryMode || savedRef.current || !rider) return;
-    savedRef.current = true;
-    try {
-      const newId = saveRide({
-        riderId: rider.id,
-        goalMode,
-        startedAt: rideStartedAt ?? Date.now(),
-        endedAt,
-        distanceKm,
-        elevationM: 0,
-        completedSegments,
-        gpxTrackPoints,
-        cueLog,
-      });
-      setSavedRideId(newId);
-      console.log('[PostRide] ride saved to DB:', newId);
-    } catch (err) {
-      console.error('[PostRide] save failed:', err);
-    }
-  }, []);
+  // NOTE: saving now happens in endRideAndSave() BEFORE navigation (the single save
+  // path — see services/rideControl.ts), so there is no mount-effect save here. By
+  // the time this screen mounts the ride row already exists and the store is reset,
+  // so the component renders from SQLite via the isHistoryMode path below.
 
   // Local sync state — drives badge + affordances. Re-read from DB on changes.
   const [dataSource, setDataSource] = useState<'provisional' | 'strava'>(
@@ -532,13 +516,15 @@ export function PostRideSummaryScreenWrapper() {
     return generateDebrief(completedSegments, durationSec, distanceKm);
   }, [isHistoryMode, persisted, completedSegments, durationSec, distanceKm, effectiveDistanceKm]);
 
-  // Speak debrief on mount — only for live post-ride, not history viewing
+  // Speak the debrief once, only when explicitly requested (a fresh in-app End passes
+  // speakDebrief). History replays and deferred summaries stay silent.
+  const speakDebrief = route.params.speakDebrief ?? false;
   const spokenRef = useRef(false);
   useEffect(() => {
-    if (isHistoryMode || spokenRef.current || !debriefText) return;
+    if (!speakDebrief || spokenRef.current || !debriefText) return;
     spokenRef.current = true;
     speak(debriefText);
-  }, [debriefText, isHistoryMode]);
+  }, [debriefText, speakDebrief]);
 
   const rideName = useMemo(() => {
     if (isHistoryMode && persisted) return persisted.ride.name;
