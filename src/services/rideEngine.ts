@@ -151,16 +151,27 @@ export async function startRideEngine(
 
   // Start background-capable GPS via a foreground service so tracking continues
   // when the screen locks or the app is backgrounded mid-ride.
+  // Guard against a stale registration (a prior ride / restored session) — stacking
+  // startLocationUpdatesAsync calls makes the fused provider thrash (register/
+  // deregister), starving updates. Always clear any existing task first.
+  try {
+    if (await TaskManager.isTaskRegisteredAsync(LOCATION_TASK)) {
+      await Location.stopLocationUpdatesAsync(LOCATION_TASK);
+    }
+  } catch { /* none registered */ }
+
   await Location.startLocationUpdatesAsync(LOCATION_TASK, {
     accuracy: Location.Accuracy.BestForNavigation,
     timeInterval: GPS_INTERVAL_MS,
     distanceInterval: 0,
     pausesUpdatesAutomatically: false,
+    activityType: Location.ActivityType.Fitness,
     showsBackgroundLocationIndicator: true,
     foregroundService: {
       notificationTitle: 'Veloscape — ride in progress',
       notificationBody: 'Tracking your route and coaching your segments.',
       notificationColor: '#F5C842', // matches colors.gold
+      killServiceOnDestroy: false, // survive the app being swiped away mid-ride
     },
   });
 
