@@ -24,7 +24,11 @@ export default function RideStack() {
         component={SegmentResultScreenWrapper}
         options={{ gestureEnabled: false }}
       />
-      <Stack.Screen name="PostRideSummary" component={PostRideSummaryScreenWrapper} />
+      <Stack.Screen
+        name="PostRideSummary"
+        component={PostRideSummaryScreenWrapper}
+        options={{ gestureEnabled: false }}
+      />
       <Stack.Screen
         name="Paywall"
         component={PaywallScreenWrapper}

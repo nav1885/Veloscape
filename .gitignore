@@ -57,3 +57,6 @@ keystore.properties
 scripts/release.env
 google-play-service-account.json
 *.p8
+
+ios/build-sim/
+docs/test-reports/.flint-state.json

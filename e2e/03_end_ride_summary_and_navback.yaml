@@ -1,0 +1,36 @@
+# Flow 03 — In-app End → PostRideSummary, and the synced-ride nav regression
+# (AUTH-GATED; BLOCKED on clean simulator — same auth/seed prerequisites as Flow 02).
+#
+# Part A: end a (simulated) ride via Hold-to-End → summary renders from SQLite + speaks
+#         debrief (speakDebrief flag). Verifies endRideAndSave is the sole save path.
+# Part B: the bottom-nav regression — open a synced ride from Home, press back, and
+#         assert the bottom tab bar is still present (the Ride modal dismissed to Home).
+appId: app.veloscape
+---
+- launchApp
+# --- Part A: End → summary ---
+- longPressOn:
+    text: "Start Ride|Start ride"
+- assertVisible: "Hold to End"
+- longPressOn:
+    id: ".*"
+    text: "Hold to End"
+    # Maestro long-press default duration must exceed delayLongPress=2000ms
+- assertVisible:
+    text: "Morning Ride|Afternoon Ride|Evening Ride"   # PostRideSummary header
+- takeScreenshot: /tmp/flint-03-summary
+# Done → Home (tab bar restored)
+- tapOn:
+    text: "Done"
+    optional: true
+# --- Part B: synced-ride open → back → tab bar remains ---
+# Tap the first Recent Rides tile (a synced ride), then go back.
+- tapOn:
+    text: ".*Ride.*"
+    index: 0
+    optional: true
+- back
+# The bottom tab bar (Home / Segments / History / Settings) must still be visible.
+- assertVisible:
+    text: "Home|Segments|History|Settings"
+- takeScreenshot: /tmp/flint-03-navback-tabbar

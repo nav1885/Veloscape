@@ -40,6 +40,14 @@ export async function setupRideNotifications(): Promise<void> {
   if (_initialized) return;
   _initialized = true;
 
+  // Required or iOS silently suppresses the ride notification (and its lock-screen
+  // controls). On Android 13+ this also covers POST_NOTIFICATIONS.
+  try {
+    await Notifications.requestPermissionsAsync();
+  } catch (e) {
+    console.warn('[rideNotification] permission request failed:', e);
+  }
+
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
       shouldShowBanner: false,

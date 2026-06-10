@@ -1,0 +1,35 @@
+# Flow 02 — In-Ride single-glance + mute (AUTH-GATED; BLOCKED on clean simulator)
+# Requires an authenticated Strava session in SecureStore AND ≥1 starred segment in
+# SQLite, neither of which can be created on the simulator without real OAuth. Use the
+# hidden simulated-ride affordance (LONG-PRESS "Start Ride") to drive the engine
+# foreground, then assert the refined single-glance UI + mute behavior.
+#
+# To run: pre-seed an authed session + starred segments (e.g. via a debug build that
+# injects authStore + a segment row), then `maestro test e2e/02_inride_single_glance.yaml`.
+appId: app.veloscape
+---
+- launchApp
+# Home — Quick-Start tile. Long-press = simulated ride (foreground engine).
+- assertVisible:
+    text: "Start Ride|Start ride"
+- longPressOn:
+    text: "Start Ride|Start ride"
+# Single-glance In-Ride: between-segments layout (NO segment roster).
+- assertVisible: "Coaching on"          # CoachingIndicator live state
+- assertVisible:
+    text: ".* of .* segments"            # "N of M done" metric
+- assertVisible:
+    text: "Mute coaching"                # MuteToggle (unmuted label)
+- assertVisible: "Hold to End"           # 2s long-press End control
+- assertNotVisible: "SEGMENTS"           # roster header must be GONE (cut)
+- takeScreenshot: /tmp/flint-02-inride-between
+# Mute toggle → indicator + label flip (ride-scoped mute)
+- tapOn: "Mute coaching"
+- assertVisible: "Coaching muted"
+- assertVisible:
+    text: ".*tap to unmute"
+- takeScreenshot: /tmp/flint-02-inride-muted
+# Unmute restores
+- tapOn:
+    text: ".*tap to unmute"
+- assertVisible: "Coaching on"

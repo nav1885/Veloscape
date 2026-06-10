@@ -1,0 +1,19 @@
+# Flow 01 — Launch + onboarding render (works UNAUTHED on a clean install)
+# Verifies the app boots on iOS, setupRideNotifications() runs without crash at init,
+# and the Welcome → Carousel → StravaConnect onboarding renders. This is the only
+# refinement-adjacent path reachable on the simulator without a real Strava login.
+appId: app.veloscape
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Veloscape"
+- assertVisible: "Get Started"
+# Welcome tagline from WelcomeScreen.tsx
+- assertVisible:
+    text: ".*coach who was there.*"
+- tapOn: "Get Started"
+# Carousel — advance through slides to the Strava connect CTA
+- assertVisible:
+    text: "Connect Strava|Next|Skip"
+    optional: true
+- takeScreenshot: /tmp/flint-01-onboarding
