@@ -17,6 +17,7 @@ import { getCueForSegment } from './cueService';
 import { speak, stop as stopTTS } from './ttsService';
 import { haversineMetres, decodePolyline, LatLng } from '../utils/polyline';
 import { segmentPhase, shouldExitSegment } from '../utils/segmentDetection';
+import { startRideGeofences, stopRideGeofences } from './rideGeofence';
 import { spokenDistanceMeters } from '../utils/units';
 import { GoalMode } from '../types/goalMode';
 import { CueType } from '../store/rideStore';
@@ -142,6 +143,10 @@ export async function startRideEngine(
   const store = useRideStore.getState();
   store.startRide(goalMode, segmentIds);
 
+  // Register OS geofences — the BACKGROUND-reliable cue source. The continuous path
+  // below owns cues + live UI while foreground; geofences take over when pocketed.
+  startRideGeofences(_trackers.map(t => t.segment), goalMode).catch(() => {});
+
   // Speak start cue (gated by mute only — Recovery should still hear the start handoff)
   const segCount = _trackers.length;
   if (!useRideStore.getState().cuesMuted) {
@@ -182,6 +187,7 @@ export async function startRideEngine(
 }
 
 export async function stopRideEngine(): Promise<void> {
+  stopRideGeofences().catch(() => {});
   try {
     if (await TaskManager.isTaskRegisteredAsync(LOCATION_TASK)) {
       await Location.stopLocationUpdatesAsync(LOCATION_TASK);

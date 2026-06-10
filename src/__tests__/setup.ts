@@ -19,10 +19,23 @@ jest.mock('expo-location', () => ({
   watchPositionAsync: jest.fn().mockResolvedValue({ remove: jest.fn() }),
   startLocationUpdatesAsync: jest.fn().mockResolvedValue(undefined),
   stopLocationUpdatesAsync: jest.fn().mockResolvedValue(undefined),
-  Accuracy: {
-    BestForNavigation: 6,
-    High: 4,
-  },
+  startGeofencingAsync: jest.fn().mockResolvedValue(undefined),
+  stopGeofencingAsync: jest.fn().mockResolvedValue(undefined),
+  Accuracy: { BestForNavigation: 6, High: 4 },
+  ActivityType: { Fitness: 3 },
+  LocationGeofencingEventType: { Enter: 1, Exit: 2 },
+}));
+
+// expo-file-system (durable geofence state file)
+jest.mock('expo-file-system', () => ({
+  Paths: { document: '/doc' },
+  File: jest.fn().mockImplementation(() => ({
+    exists: false,
+    text: jest.fn().mockResolvedValue('{}'),
+    write: jest.fn(),
+    delete: jest.fn(),
+  })),
+  Directory: jest.fn(),
 }));
 
 // expo-task-manager (defineTask runs at module load in the ride engine)
