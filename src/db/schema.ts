@@ -63,6 +63,8 @@ export const rides = sqliteTable('rides', {
   coachedBySherpaa: integer('coached_by_sherpaa', { mode: 'boolean' }).notNull().default(false),
   summaryGeneratedAt: integer('summary_generated_at'),
   summaryModel: text('summary_model'),
+  // Deferred summary for a backgrounded (lock-screen) End — shown on next open.
+  summaryViewed: integer('summary_viewed', { mode: 'boolean' }).notNull().default(false),
 });
 
 // ─── Cue Log (Phone-as-Coach) ────────────────────────────────────────────────

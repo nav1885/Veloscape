@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 
 import RootNavigator from './src/navigation/RootNavigator';
 import { runMigrations } from './src/db/migrations';
+import { setupRideNotifications } from './src/services/rideNotification';
 import { colors } from './src/constants/colors';
 import { loadStarredSegments } from './src/services/segmentService';
 import { useSegmentStore } from './src/store/segmentStore';
@@ -20,6 +21,7 @@ export default function App() {
   const lastReconcileRef = useRef(0);
 
   useEffect(() => {
+    setupRideNotifications().catch((e) => console.warn('[App] notif setup failed', e));
     runMigrations()
       .then(async () => {
         console.log('[App] migrations done');

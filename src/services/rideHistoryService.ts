@@ -4,7 +4,7 @@
  * and joins efforts with segment names for the detail view.
  */
 
-import { desc, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { db } from '../db/client';
 import { rides, segmentEfforts, segments, type Ride, type SegmentEffort } from '../db/schema';
 import { resolveRideRouteCoords } from './routeResolver';
@@ -50,6 +50,24 @@ export interface RideEffortRow {
 export interface RideDetail {
   ride: Ride;
   efforts: RideEffortRow[];
+}
+
+/** Mark a ride's summary as seen (called whenever PostRideSummary is shown). */
+export function markSummaryViewed(rideId: string): void {
+  db.update(rides).set({ summaryViewed: true }).where(eq(rides.id, rideId)).run();
+}
+
+/** The most-recent ride whose summary hasn't been seen — a ride ended in the
+ *  background. Used by the launch router to surface its summary on next open. */
+export function getUnviewedSummaryRideId(riderId: string): string | null {
+  const row = db
+    .select({ id: rides.id })
+    .from(rides)
+    .where(and(eq(rides.riderId, riderId), eq(rides.summaryViewed, false)))
+    .orderBy(desc(rides.endedAt))
+    .limit(1)
+    .get();
+  return row?.id ?? null;
 }
 
 export function loadRideHistory(riderId: string): RideHistoryRow[] {

@@ -13,6 +13,7 @@ import { getExistingCueSegmentIds } from '../services/cueService';
 import { preWarmCuesForMode } from '../services/cueWarm';
 import { useSettingsStore } from '../store/settingsStore';
 import { getActivitySummaryPolyline } from '../services/activityService';
+import { getUnviewedSummaryRideId } from '../services/rideHistoryService';
 import { resolveRideRouteCoords } from '../services/routeResolver';
 import { getActivityDetail } from '../services/stravaApi';
 import { upsertCachedActivityFromDetail } from '../services/homeIngestor';
@@ -81,7 +82,15 @@ export default function HomeTab() {
 
   useFocusEffect(useCallback(() => {
     reloadFeed();
-  }, [reloadFeed]));
+    // Deferred-summary router: if a ride was ended in the background (lock-screen
+    // End), surface its summary now. Idempotent — the summary screen marks it viewed.
+    if (rider && !useRideStore.getState().isRideActive) {
+      const unviewedId = getUnviewedSummaryRideId(rider.id);
+      if (unviewedId) {
+        navigation.navigate('Ride', { screen: 'PostRideSummary', params: { rideId: unviewedId } });
+      }
+    }
+  }, [reloadFeed, rider]));
 
   // Background ingest: pull last 30 days of Strava rides into the feed once per session
   useEffect(() => {

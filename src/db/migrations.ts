@@ -200,4 +200,19 @@ export async function runMigrations(): Promise<void> {
     WHERE id IN (SELECT DISTINCT ride_id FROM cue_log_entries)
       AND coached_by_sherpaa = 0
   `);
+
+  // v5: deferred summary for a ride ended in the background (lock-screen End) — its
+  // summary is shown on next app open. Track whether it's been seen yet. ONE-TIME
+  // backfill marks all pre-existing rides as viewed so the launch router only ever
+  // surfaces a genuinely new backgrounded-ended ride, never historical rides.
+  let summaryViewedJustAdded = false;
+  try {
+    await db.run(sql`ALTER TABLE rides ADD COLUMN summary_viewed INTEGER NOT NULL DEFAULT 0`);
+    summaryViewedJustAdded = true;
+  } catch {
+    // Column already exists — idempotent
+  }
+  if (summaryViewedJustAdded) {
+    await db.run(sql`UPDATE rides SET summary_viewed = 1`);
+  }
 }

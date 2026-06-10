@@ -19,6 +19,7 @@ import { getActivityDetail } from '../services/stravaApi';
 import { upsertCachedActivityFromDetail } from '../services/homeIngestor';
 import { startRideEngine, startSimulatedRide, stopRideEngine, getRideStartTime, muteCoaching, unmuteCoaching } from '../services/rideEngine';
 import { endRideAndSave } from '../services/rideControl';
+import { postRideNotification, dismissRideNotification } from '../services/rideNotification';
 import { saveRide, generateDebrief } from '../services/rideService';
 import {
   getOrGenerateSummary,
@@ -29,7 +30,7 @@ import {
 import type { SummaryTextState } from '../components/SummaryText';
 import type { AudioButtonState } from '../components/InlineAudioButton';
 import { stop as stopTTS } from '../services/ttsService';
-import { loadRideDetail } from '../services/rideHistoryService';
+import { loadRideDetail, markSummaryViewed } from '../services/rideHistoryService';
 import { speak } from '../services/ttsService';
 import {
   startReconciliation,
@@ -107,6 +108,13 @@ export function InRideScreenWrapper() {
   // service + background location), independent of this screen being mounted. You
   // can leave, lock the phone, switch apps; coaching continues until End Ride.
 
+  // Keep the lock-screen control notification in sync with ride state (mute, segment
+  // progress, distance). Not for the foreground-only simulator.
+  useEffect(() => {
+    if (simulate || !segmentIds?.length) return;
+    postRideNotification().catch(() => {});
+  }, [cuesMuted, currentSegment?.id, completedSegments.length, simulate]);
+
   // Elapsed time ticker — fires when rideStartedAt is set by the engine
   useEffect(() => {
     if (!rideStartedAt) return;
@@ -123,6 +131,7 @@ export function InRideScreenWrapper() {
   async function handleEndRide() {
     // Single save path: persists to SQLite + tears down + resets the store BEFORE
     // we navigate. The summary then renders from the saved row.
+    dismissRideNotification().catch(() => {});
     const result = await endRideAndSave('in-app');
     if (result) {
       navigation.navigate('PostRideSummary', { rideId: result.rideId, speakDebrief: true });
@@ -346,6 +355,12 @@ export function PostRideSummaryScreenWrapper() {
   // path — see services/rideControl.ts), so there is no mount-effect save here. By
   // the time this screen mounts the ride row already exists and the store is reset,
   // so the component renders from SQLite via the isHistoryMode path below.
+
+  // Mark this ride's summary as seen (covers both a fresh End and a deferred summary
+  // surfaced by the launch router after a backgrounded End).
+  useEffect(() => {
+    markSummaryViewed(routeRideId);
+  }, [routeRideId]);
 
   // Local sync state — drives badge + affordances. Re-read from DB on changes.
   const [dataSource, setDataSource] = useState<'provisional' | 'strava'>(
