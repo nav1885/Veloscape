@@ -60,10 +60,20 @@ export function markSummaryViewed(rideId: string): void {
 /** The most-recent ride whose summary hasn't been seen — a ride ended in the
  *  background. Used by the launch router to surface its summary on next open. */
 export function getUnviewedSummaryRideId(riderId: string): string | null {
+  // ONLY surface a ride Veloscape itself recorded (dataSource 'provisional') — i.e. a
+  // ride ended in the background. Strava-synced rides insert with dataSource 'strava'
+  // and summary_viewed=0 by default; without this filter the router would shove the
+  // user into the Ride stack (hiding the bottom nav) for every synced ride.
   const row = db
     .select({ id: rides.id })
     .from(rides)
-    .where(and(eq(rides.riderId, riderId), eq(rides.summaryViewed, false)))
+    .where(
+      and(
+        eq(rides.riderId, riderId),
+        eq(rides.summaryViewed, false),
+        eq(rides.dataSource, 'provisional'),
+      ),
+    )
     .orderBy(desc(rides.endedAt))
     .limit(1)
     .get();
