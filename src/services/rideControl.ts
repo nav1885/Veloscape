@@ -11,7 +11,6 @@ import { useRideStore } from '../store/rideStore';
 import { useAuthStore } from '../store/authStore';
 import { saveRide } from './rideService';
 import { stopRideEngine } from './rideEngine';
-import { getBackgroundCompletedEfforts } from './rideGeofence';
 
 export type EndReason = 'in-app' | 'notification';
 
@@ -24,22 +23,12 @@ export async function endRideAndSave(reason: EndReason): Promise<{ rideId: strin
   const rs = useRideStore.getState();
   const rider = useAuthStore.getState().rider;
 
-  // Merge in segments completed via the BACKGROUND geofence path (they live in a file,
-  // not the store) so a pocketed ride never loses efforts. De-dup by segmentId — the
-  // foreground store wins if a segment somehow appears in both.
-  const bgEfforts = await getBackgroundCompletedEfforts();
-  const storeIds = new Set(rs.completedSegments.map((c) => c.segmentId));
-  const mergedSegments = [
-    ...rs.completedSegments,
-    ...bgEfforts.filter((e) => !storeIds.has(e.segmentId)),
-  ];
-
   // Snapshot everything we need BEFORE teardown clears it.
   const snapshot = {
     goalMode: rs.goalMode,
     startedAt: rs.rideStartedAt ?? Date.now(),
     distanceKm: rs.distanceKm,
-    completedSegments: mergedSegments,
+    completedSegments: rs.completedSegments,
     gpxTrackPoints: rs.gpxTrackPoints,
     cueLog: rs.cueLog,
   };
